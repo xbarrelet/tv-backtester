@@ -2,6 +2,7 @@ package ch.xavier
 package backtesting
 
 import Application.{executionContext, system}
+
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
@@ -11,7 +12,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Random, Success}
 
 object MainBacktesterActor {
   def apply(): Behavior[Message] =
@@ -20,17 +21,22 @@ object MainBacktesterActor {
 
 class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   implicit val timeout: Timeout = 300.seconds
-  val logger: Logger = LoggerFactory.getLogger("StrategiesMainActor")
+  private val logger: Logger = LoggerFactory.getLogger("MainBacktesterActor")
 
   private val backtestersSpawner: ActorRef[Message] = context.spawn(BacktestersSpawnerActor(), s"backtesters-spawner-actor")
-  private var results: ListBuffer[BacktestingResultMessage] = ListBuffer()
+  private val results: ListBuffer[BacktestingResultMessage] = ListBuffer()
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestChartMessage() =>
-        context.log.info(s"Starting backtesting")
+        context.log.info(s"Starting backtesting for chart ${sys.env("CHART_ID")}")
 
-        optimizeTPRR()
+        var parametersTuplesToTest: List[List[ParametersToTest]] = List()
+        val resultsList: ListBuffer[BacktestingResultMessage] = ListBuffer()
+
+        parametersTuplesToTest ++= addParametersForTPRR()
+
+        RunBacktesting(parametersTuplesToTest)
 
       case _ =>
         context.log.warn("Received unknown message in MainBacktesterActor of type: " + message.getClass)
@@ -38,9 +44,36 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
       this
 
 
-  private def optimizeTPRR(): Unit =
+  private def RunBacktesting(parametersCombinationToTest: List[List[ParametersToTest]]): Unit = {
+    Source(parametersCombinationToTest)
+      .throttle(1, Random.between(1500, 2500).millis)
+      .mapAsync(4)(parametersToTest => {
+        backtestersSpawner ? (myRef => BacktestMessage(parametersToTest, myRef))
+      })
+      .map(_.asInstanceOf[BacktestingResultMessage])
+      .filter(_.closedTradesNumber > 30)
+      .map(results.append)
+      .runWith(Sink.last)
+      .onComplete {
+        case Success(result) =>
+          val sortedResults = results.sortWith(_.profitFactor > _.profitFactor).toList
+
+          logger.info("")
+          logger.info("Best 50 results sorted by profit factor:")
+
+          for result <- sortedResults.take(50) do
+            logger.info("Profit factor: " + result.profitFactor + " - " + result.parameters)
+
+          logger.info("")
+          backtestersSpawner ! SaveParametersMessage(sortedResults.head.parameters)
+
+        case Failure(e) =>
+          logger.error("Exception received in RunBacktesting:" + e)
+      }
+  }
+
+  private def addParametersForTPRR(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
-    val resultsList: ListBuffer[BacktestingResultMessage] = ListBuffer()
 
     val profitsSelector = "xpath=//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[28]/div/span"
     val profitFactorLongXPath: String = "xpath=//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[69]/div/span/span[1]/input"
@@ -57,25 +90,5 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
 //        List(ParametersToTest(profitsSelector, "R:R", "selectTakeProfit"), ParametersToTest(profitFactorShortXPath, (i / 10.0).toString, "fill")))
 //    })
 
-
-    Source(parametersList.result())
-      .throttle(1, 1.second)
-      .mapAsync(16)(parametersToTest => {
-        backtestersSpawner ? (myRef => BacktestMessage(parametersToTest, myRef))
-        })
-      .map(_.asInstanceOf[BacktestingResultMessage])
-      .filter(_.closedTradesNumber > 30)
-      .map(results.append(_))
-      .runWith(Sink.last)
-      .onComplete {
-        case Success(result) =>
-          logger.info("")
-          logger.info("Results sorted by profit factor:")
-
-          for result <- results.sortWith(_.profitFactor > _.profitFactor) do
-            logger.info("Profit factor: " + result.profitFactor + " - " + result)
-
-        case Failure(e) =>
-          logger.error("Exception received in StrategiesMainActor:" + e)
-      }
+    parametersList.toList
 }

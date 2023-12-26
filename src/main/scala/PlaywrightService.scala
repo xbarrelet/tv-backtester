@@ -9,7 +9,7 @@ import com.microsoft.playwright.*
 object PlaywrightService {
 
   def preparePage(): Page = {
-    val browserContext: BrowserContext =  InitialiseBrowserContext()
+    val browserContext: BrowserContext = InitialiseBrowserContext()
 
     val page: Page = browserContext.newPage()
     page.navigate(s"https://www.tradingview.com/chart/${sys.env("CHART_ID")}/")
