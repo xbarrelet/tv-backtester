@@ -1,41 +1,22 @@
 package ch.xavier
 
-import TVLocators.{chartDeepBacktestingScalerXPath, welcomeLabelParametersModalXPath}
-
 import com.microsoft.playwright.*
-import com.microsoft.playwright.Page.GetByRoleOptions
-import com.microsoft.playwright.options.{AriaRole, Cookie}
-import org.slf4j.{Logger, LoggerFactory}
+import com.microsoft.playwright.options.Cookie
 
-import java.nio.file.Paths
-
-object PlaywrightService {
+class PlaywrightService {
   
-  def preparePage(): Page = {
-    val page: Page = InitialiseBrowserContext().newPage()
-    
-    try {
-      page.navigate(s"https://www.tradingview.com/chart/${sys.env("CHART_ID")}/")
-      page.waitForSelector(chartDeepBacktestingScalerXPath).isVisible
+//  private val browserContext: BrowserContext = InitialiseBrowserContext()
 
-      page.getByRole(AriaRole.SWITCH).click()
 
-      page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
-      page.waitForSelector(welcomeLabelParametersModalXPath).isVisible
-
-      page
-    }
-    catch
-      case e: Exception =>
-        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get("error.png")))
-        val logger: Logger = LoggerFactory.getLogger("PlaywrightService")
-        logger.error("Error when trying to open the chart, please check error.png screenshot to get an idea of what is happening")
-        page.close()
-        throw e
+  def getEmptyPage: Page = this.synchronized {
+    InitialiseBrowserContext().newPage()
+//    browserContext.newPage()
   }
 
 
   private def InitialiseBrowserContext(): BrowserContext = {
+//    val chromiumBrowserType: BrowserType = Playwright.create().chromium()
+//    val browser: Browser = chromiumBrowserType.launch()
     val chromiumBrowserType: BrowserType = Playwright.create().chromium()
     val browser: Browser = chromiumBrowserType.launch()
 
@@ -48,10 +29,9 @@ object PlaywrightService {
     val cookies: java.util.List[Cookie] = new java.util.ArrayList[Cookie]()
     cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
-    
-    browserContext.setDefaultTimeout(60000)
+
+    browserContext.setDefaultTimeout(30000)
 
     browserContext
   }
-
 }

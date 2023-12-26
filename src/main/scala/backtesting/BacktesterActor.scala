@@ -5,17 +5,13 @@ import TVLocators.*
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.util.Timeout
 import com.microsoft.playwright.*
 import com.microsoft.playwright.Page.GetByRoleOptions
-import com.microsoft.playwright.options.AriaRole
-
-import java.util
-import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.*
-import ch.xavier.PlaywrightService
+import com.microsoft.playwright.options.{AriaRole, Cookie}
 
 import java.nio.file.Paths
+import java.util
+import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 
@@ -25,31 +21,43 @@ object BacktesterActor {
 }
 
 class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
-  implicit val timeout: Timeout = 15.seconds
   private val chartId = sys.env("CHART_ID")
+  private var ownPlaywrightService: PlaywrightService = _
+  private val browserContext: BrowserContext = InitialiseBrowserContext()
 
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) =>
-        context.log.debug(s"Starting backtesting actor for chart $chartId")
+      case EnrichedBacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message], playwrightService: PlaywrightService) =>
+        ownPlaywrightService = playwrightService
+        context.log.info(s"Starting backtesting actor:${context.self} for chart $chartId")
 
-        val page: Page = PlaywrightService.preparePage()
+        val page: Page = getPreparedPage(context.self.toString)
 
-//        displayAllLocators(page)
+        //        displayAllLocators(page)
 //        actorRef ! BacktestingResultMessage(0, 0, 0, 0, 0, parametersToTest)
 
-        enterParameters(parametersToTest, page)
+        try {
+          enterParameters(parametersToTest, page)
 
-        waitForBacktestingResults(page)
-        actorRef ! getBacktestingResults(page, parametersToTest)
+          waitForBacktestingResults(page)
+          actorRef ! getBacktestingResults(page, parametersToTest)
+        }
+        catch
+          case e: Exception =>
+            val counter = Random.nextInt(1000)
+            page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"error_$counter.png")))
+            context.log.error(s"Error with id $counter when trying to backtest in the end actor, please check error.png screenshot to get an idea of what is happening:${e.getMessage}")
+            page.close()
+            context.self ! message
+            return this
 
         page.close()
 
       case SaveParametersMessage(parametersToSave: List[ParametersToTest]) =>
         context.log.info(s"Now saving the best parameters for chart id:$chartId. Parameters:$parametersToSave")
 
-        val page: Page = PlaywrightService.preparePage()
+        val page: Page = getPreparedPage(context.self.toString)
 
         enterParameters(parametersToSave, page)
 
@@ -63,15 +71,31 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       case _ =>
         context.log.error("Received unknown message in BacktesterActor")
 
+      browserContext.close()
       Behaviors.stopped
 
 
+  private def getPreparedPage(stringActorRef: String) = {
+    var isPageReady = false
+    var page: Page = null
+
+    while !isPageReady do
+      try {
+        page = preparePage(browserContext.newPage())
+        isPageReady = true
+      }
+      catch
+        case e: Exception =>
+          context.log.debug(s"Error when preparing a page in $stringActorRef, trying again")
+    page
+  }
+
   private def getBacktestingResults(page: Page, parametersToTest: List[ParametersToTest]): BacktestingResultMessage = {
-    val netProfitsPercentage: Double = page.locator(netProfitsPercentageValueXPath).innerText().replace("%", "").toDouble
+    val netProfitsPercentage: Double = page.locator(netProfitsPercentageValueXPath).innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").toDouble
     val closedTradesNumber: Int = page.locator(closedTradesNumberXPath).innerText().toInt
-    val profitabilityPercentage: Double = page.locator(profitabilityPercentageValueXPath).innerText().replace("%", "").toDouble
-    val profitFactor: Double = page.locator(profitFactorValueXPath).innerText().toDouble
-    val maxDrawdownPercentage: Double = page.locator(maxDrawdownPercentValueXPath).innerText().replace("%", "").toDouble
+    val profitabilityPercentage: Double = page.locator(profitabilityPercentageValueXPath).innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").toDouble
+    val profitFactor: Double = page.locator(profitFactorValueXPath).innerText().replace("N/A", "0.0").toDouble
+    val maxDrawdownPercentage: Double = page.locator(maxDrawdownPercentValueXPath).innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").toDouble
 
     BacktestingResultMessage(netProfitsPercentage, closedTradesNumber, profitabilityPercentage, profitFactor,
       maxDrawdownPercentage, parametersToTest)
@@ -97,9 +121,10 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   }
 
   private def waitForBacktestingResults(page: Page): Unit = {
+    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).waitFor()
     page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
-    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
 
+    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
     val generateReportButton = page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).first()
     if generateReportButton.isEnabled then
       generateReportButton.click()
@@ -124,4 +149,32 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 //        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshot_$counter.png")))
   }
 
+  private def preparePage(page: Page): Page =
+    page.navigate(s"https://www.tradingview.com/chart/${sys.env("CHART_ID")}/")
+    page.waitForSelector(chartDeepBacktestingScalerXPath).isVisible
+
+    page.getByRole(AriaRole.SWITCH).click()
+
+    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
+    page.waitForSelector(welcomeLabelParametersModalXPath).isVisible
+    page
+
+  private def InitialiseBrowserContext(): BrowserContext = {
+    val chromiumBrowserType: BrowserType = Playwright.create().chromium()
+    val browser: Browser = chromiumBrowserType.launch()
+
+    val browserContext: BrowserContext = browser.newContext(
+      Browser.NewContextOptions()
+        .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36")
+        .setViewportSize(1920, 1080)
+    )
+
+    val cookies: java.util.List[Cookie] = new java.util.ArrayList[Cookie]()
+    cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
+    browserContext.addCookies(cookies)
+
+    browserContext.setDefaultTimeout(30000)
+
+    browserContext
+  }
 }

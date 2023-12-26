@@ -10,11 +10,11 @@ object TVLocators {
 
   // TP/SL
   val takeProfitTypeSelectorXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[28]/div/span"
-  val stopLossTypeSelectorXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[30]/div/span"
+  val stopLossTypeSelectorXPath =   "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[30]/div/span"
 
   // RR
-  val rrProfitFactorLongXPath: String = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[69]/div/span/span[1]/input"
-  val rrProfitFactorShortXPath: String = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[70]/div/span/span[1]/input"
+  val rrProfitFactorLongXPath: String =  "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[69]/div/span/span[1]/input"
+  val rrProfitFactorShortXPath: String = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[71]/div/span/span[1]/input"
 
   // Fixed Percent
   val fixedPercentTPLongXPath: String = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[39]/div/span/span[1]/input"

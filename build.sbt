@@ -12,8 +12,13 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
       "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
-      "ch.qos.logback" % "logback-classic" % "1.4.12",
-      "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+      "ch.qos.logback" % "logback-classic" % "1.2.13",
       "com.microsoft.playwright" % "playwright" % "1.31.0"
     )
   )
+
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", _*) => MergeStrategy.discard
+  case PathList("reference.conf") => MergeStrategy.concat
+  case _                        => MergeStrategy.first
+}

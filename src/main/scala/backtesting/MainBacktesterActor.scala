@@ -35,13 +35,20 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
 
         var TPParametersTuplesToTest: List[List[ParametersToTest]] = List()
 
-        TPParametersTuplesToTest ++= addParametersForTPRR()
-        TPParametersTuplesToTest ++= addParametersForTPFixedPercent()
-        TPParametersTuplesToTest ++= addParametersForTPPips()
+        //TODO: Faur les processer une apres lautre. Comment faire ca elegamment? Enrober tes source flows?
+//        TPParametersTuplesToTest = addParametersForTPRRShort()
+//        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRShort")
+//        optimizeParameters(TPParametersTuplesToTest)
+
+        TPParametersTuplesToTest = addParametersForTPRRLong()
+        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRLong")
+        optimizeParameters(TPParametersTuplesToTest)
+//        TPParametersTuplesToTest ++= addParametersForTPFixedPercent()
+//        TPParametersTuplesToTest ++= addParametersForTPPips()
 
         //TODO: Begin with a simple final step Trailing loss + TP?
-        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation")
-        optimizeParameters(TPParametersTuplesToTest)
+//        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation")
+//        optimizeParameters(TPParametersTuplesToTest)
 
 //        var SLParametersTuplesToTest: List[List[ParametersToTest]] = List()
 //
@@ -60,8 +67,8 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
 
   private def optimizeParameters(parametersCombinationToTest: List[List[ParametersToTest]]): Unit = {
     Source(parametersCombinationToTest)
-      .throttle(1, Random.between(1500, 2500).millis)
-      .mapAsync(1)(parametersToTest => {
+      .throttle(1, Random.between(2500, 5000).millis)
+      .mapAsync(4)(parametersToTest => {
         backtestersSpawner ? (myRef => BacktestMessage(parametersToTest, myRef))
       })
       .map(_.asInstanceOf[BacktestingResultMessage])
@@ -73,7 +80,7 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
           val sortedResults = results.sortWith(_.profitFactor > _.profitFactor).toList
 
           logger.info("")
-          logger.info("Best 50 results sorted by profit factor:")
+          logger.info(s"Best 50 on ${sortedResults.size} results sorted by profit factor:")
 
           for result <- sortedResults.take(50) do
             logger.info("Profit factor: " + result.profitFactor + " - " + result.parameters)
@@ -87,19 +94,24 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
       }
   }
 
-  private def addParametersForTPRR(): List[List[ParametersToTest]] =
+  private def addParametersForTPRRShort(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
     (5 to 50).map(i => {
       parametersList.addOne(List(
           ParametersToTest(takeProfitTypeSelectorXPath, "R:R", "selectTakeProfit"),
-          ParametersToTest(rrProfitFactorLongXPath, (i/10.0).toString, "fill")))
+          ParametersToTest(rrProfitFactorShortXPath, (i / 10.0).toString, "fill")))
     })
+
+    parametersList.toList
+
+  private def addParametersForTPRRLong(): List[List[ParametersToTest]] =
+    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
     (5 to 50).map(i => {
       parametersList.addOne(List(
-          ParametersToTest(takeProfitTypeSelectorXPath, "R:R", "selectTakeProfit"),
-          ParametersToTest(rrProfitFactorShortXPath, (i / 10.0).toString, "fill")))
+        ParametersToTest(takeProfitTypeSelectorXPath, "R:R", "selectTakeProfit"),
+        ParametersToTest(rrProfitFactorLongXPath, (i / 10.0).toString, "fill")))
     })
 
     parametersList.toList

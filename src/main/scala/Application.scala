@@ -4,7 +4,6 @@ import backtesting.MainBacktesterActor
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import com.microsoft.playwright.*
 
 import scala.concurrent.ExecutionContextExecutor
 
