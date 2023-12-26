@@ -10,10 +10,13 @@ import com.microsoft.playwright.*
 import com.microsoft.playwright.Page.GetByRoleOptions
 import com.microsoft.playwright.options.AriaRole
 
-import java.nio.file.Paths
 import java.util
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.*
+import ch.xavier.PlaywrightService
+
+import java.nio.file.Paths
+import scala.util.Random
 
 
 object BacktesterActor {
@@ -27,24 +30,24 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestMessage(parametersToTest: List[ParametersToTest], browserContext: BrowserContext, actorRef: ActorRef[Message]) =>
+      case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) =>
         val chartId = sys.env("CHART_ID")
 
-        context.log.info(s"Starting backtesting of chart id:$chartId with ${parametersToTest.size} parameters to enter")
+        context.log.info(s"Starting backtesting actor for chart $chartId")
 
-        val page: Page = preparePage(chartId, browserContext)
+        val page: Page = PlaywrightService.preparePage()
 
         enterParameters(parametersToTest, page)
-        waitForBacktestingResults(page)
 
+        waitForBacktestingResults(page)
         actorRef ! getBacktestingResults(page)
 
+        page.close()
 
       case _ =>
         context.log.warn("Received unknown message in BacktesterActor")
-        
-      
-      this
+
+      Behaviors.stopped
 
 
   private def getBacktestingResults(page: Page): BacktestingResultMessage = {
@@ -72,8 +75,11 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
   private def waitForBacktestingResults(page: Page): Unit = {
     page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
-//    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
-//    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).click()
+    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
+
+    val generateReportButton = page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).first()
+    if generateReportButton.isEnabled then
+      generateReportButton.click()
 
     page.getByLabel("Net Profit").waitFor()
   }
@@ -90,18 +96,4 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       context.log.info(s"counter: $counter, locator: ${locator.innerHTML()}")
       counter += 1
   }
-
-  private def preparePage(chartId: String, browserContext: BrowserContext) = {
-    val page: Page = browserContext.newPage()
-    page.navigate(s"https://www.tradingview.com/chart/$chartId/")
-    page.waitForSelector(s"xpath=/$chartDeepBacktestingScalerXPath").isVisible
-
-    page.getByRole(AriaRole.SWITCH).click()
-
-    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
-    page.waitForSelector(s"xpath=/$welcomeLabelParametersModalXPath").isVisible
-
-    page
-  }
-
 }

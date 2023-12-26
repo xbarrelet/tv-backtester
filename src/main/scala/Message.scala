@@ -10,7 +10,7 @@ sealed trait Message
 
 // QUERIES
 final case class BacktestChartMessage() extends Message
-final case class BacktestMessage(parametersToTest: List[ParametersToTest], browserContext: BrowserContext, actorRef: ActorRef[Message]) extends Message
+final case class BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) extends Message
 
 
 // RESPONSES

@@ -2,18 +2,15 @@ package ch.xavier
 package backtesting
 
 import Application.{executionContext, system}
-
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
+import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
-import com.microsoft.playwright.*
-import com.microsoft.playwright.options.Cookie
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success}
 
 object MainBacktesterActor {
@@ -23,17 +20,17 @@ object MainBacktesterActor {
 
 class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   implicit val timeout: Timeout = 300.seconds
+  val logger: Logger = LoggerFactory.getLogger("StrategiesMainActor")
+
+  private val backtestersSpawner: ActorRef[Message] = context.spawn(BacktestersSpawnerActor(), s"backtesters-spawner-actor")
+  private var results: ListBuffer[BacktestingResultMessage] = ListBuffer()
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestChartMessage() =>
         context.log.info(s"Starting backtesting")
 
-        //TODO: Tu as trouve les bons fields. Detecte les dynamiquement et ima il faut creer la methode pour faire du backtest. Avec retour.
-
-        val browserContext: BrowserContext = InitialiseBrowserContext(context)
-
-        optimizeTPRR(context, browserContext)
+        optimizeTPRR()
 
       case _ =>
         context.log.warn("Received unknown message in MainBacktesterActor of type: " + message.getClass)
@@ -41,42 +38,44 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
       this
 
 
-  private def optimizeTPRR(context: ActorContext[Message], browserContext: BrowserContext): Unit =
+  private def optimizeTPRR(): Unit =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+    val resultsList: ListBuffer[BacktestingResultMessage] = ListBuffer()
 
     val profitsSelector = "xpath=//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[28]/div/span"
     val profitFactorLongXPath: String = "xpath=//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[69]/div/span/span[1]/input"
     val profitFactorShortXPath: String = "xpath=//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[70]/div/span/span[1]/input"
 
-    (5 to 50).map(i => {
+    (5 to 15).map(i => {
+//    (5 to 50).map(i => {
       parametersList.addOne(
         List(ParametersToTest(profitsSelector, "R:R", "selectTakeProfit"), ParametersToTest(profitFactorLongXPath, (i/10.0).toString, "fill")))
     })
 
-    val backtesterRef: ActorRef[Message] = context.spawn(BacktesterActor(), "backtester-actor")
-        val response: Future[Message] =  backtesterRef ? (myRef => BacktestMessage(parametersList.result().head, browserContext, myRef))
-
-    response.onComplete {
-      case Success(result: Message) => println("Success:" + result)
-      case Failure(ex) => println(s"Problem encountered : ${ex.getMessage}")
-    }
+//    (5 to 50).map(i => {
+//      parametersList.addOne(
+//        List(ParametersToTest(profitsSelector, "R:R", "selectTakeProfit"), ParametersToTest(profitFactorShortXPath, (i / 10.0).toString, "fill")))
+//    })
 
 
+    Source(parametersList.result())
+      .throttle(1, 1.second)
+      .mapAsync(16)(parametersToTest => {
+        backtestersSpawner ? (myRef => BacktestMessage(parametersToTest, myRef))
+        })
+      .map(_.asInstanceOf[BacktestingResultMessage])
+      .filter(_.closedTradesNumber > 30)
+      .map(results.append(_))
+      .runWith(Sink.last)
+      .onComplete {
+        case Success(result) =>
+          logger.info("")
+          logger.info("Results sorted by profit factor:")
 
-  private def InitialiseBrowserContext(context: ActorContext[Message]): BrowserContext = {
-    val chromiumBrowserType: BrowserType = Playwright.create().chromium()
-    val browser: Browser = chromiumBrowserType.launch()
+          for result <- results.sortWith(_.profitFactor > _.profitFactor) do
+            logger.info("Profit factor: " + result.profitFactor + " - " + result)
 
-    val browserContext: BrowserContext = browser.newContext(
-      Browser.NewContextOptions()
-        .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36")
-        .setViewportSize(1920, 1080)
-    )
-
-    val cookies: java.util.List[Cookie] = new java.util.ArrayList[Cookie]()
-    cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
-    browserContext.addCookies(cookies)
-
-    browserContext
-  }
+        case Failure(e) =>
+          logger.error("Exception received in StrategiesMainActor:" + e)
+      }
 }
