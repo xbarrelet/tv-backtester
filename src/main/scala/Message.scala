@@ -1,16 +1,22 @@
 package ch.xavier
 
+import backtesting.ParametersToTest
+
 import akka.actor.typed.ActorRef
-import ch.xavier.backtesting.ParametersToTest
 import com.microsoft.playwright.{BrowserContext, Page}
 
 
 sealed trait Message
 
-final case class BacktestChartMessage(chartId: String, browserContext: BrowserContext) extends Message
-
-final case class BacktestMessage(page: Page, parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) extends Message
-
-
+// QUERIES
+final case class BacktestChartMessage() extends Message
+final case class BacktestMessage(parametersToTest: List[ParametersToTest], browserContext: BrowserContext, actorRef: ActorRef[Message]) extends Message
 
 
+// RESPONSES
+final case class BacktestingResultMessage(netProfitsPercentage: Double, 
+                                          closedTradesNumber: Int, 
+                                          profitabilityPercentage: Double,
+                                          profitFactor: Double,
+                                          maxDrawdownPercentage: Double
+                                         ) extends Message
