@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting
 
-import LocatorsXPaths.*
+import TVLocators.*
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
@@ -36,6 +36,9 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
         val page: Page = PlaywrightService.preparePage()
 
+//        displayAllLocators(page)
+//        actorRef ! BacktestingResultMessage(0, 0, 0, 0, 0, parametersToTest)
+
         enterParameters(parametersToTest, page)
 
         waitForBacktestingResults(page)
@@ -56,7 +59,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
         context.log.info("Parameters saved!")
         page.close()
-d
+
       case _ =>
         context.log.error("Received unknown message in BacktesterActor")
 
@@ -64,11 +67,11 @@ d
 
 
   private def getBacktestingResults(page: Page, parametersToTest: List[ParametersToTest]): BacktestingResultMessage = {
-    val netProfitsPercentage: Double = page.locator(s"xpath=/$netProfitsPercentageValueXPath").innerText().replace("%", "").toDouble
-    val closedTradesNumber: Int = page.locator(s"xpath=/$closedTradesNumberXPath").innerText().toInt
-    val profitabilityPercentage: Double = page.locator(s"xpath=/$profitabilityPercentageValueXPath").innerText().replace("%", "").toDouble
-    val profitFactor: Double = page.locator(s"xpath=/$profitFactorValueXPath").innerText().toDouble
-    val maxDrawdownPercentage: Double = page.locator(s"xpath=/$maxDrawdownPercentValueXPath").innerText().replace("%", "").toDouble
+    val netProfitsPercentage: Double = page.locator(netProfitsPercentageValueXPath).innerText().replace("%", "").toDouble
+    val closedTradesNumber: Int = page.locator(closedTradesNumberXPath).innerText().toInt
+    val profitabilityPercentage: Double = page.locator(profitabilityPercentageValueXPath).innerText().replace("%", "").toDouble
+    val profitFactor: Double = page.locator(profitFactorValueXPath).innerText().toDouble
+    val maxDrawdownPercentage: Double = page.locator(maxDrawdownPercentValueXPath).innerText().replace("%", "").toDouble
 
     BacktestingResultMessage(netProfitsPercentage, closedTradesNumber, profitabilityPercentage, profitFactor,
       maxDrawdownPercentage, parametersToTest)
@@ -87,6 +90,10 @@ d
       else if parameterToTest.action.eq("selectTakeProfit") then
         locator.click()
         page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).click()
+
+      else if parameterToTest.action.eq("selectStopLoss") then
+        locator.click()
+        page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).click()
   }
 
   private def waitForBacktestingResults(page: Page): Unit = {
@@ -101,15 +108,20 @@ d
   }
 
   private def displayAllLocators(page: Page): Unit = {
-//    val locators: util.List[Locator] = page.locator("xpath=//html/body/div[6]/div/div/div[1]/div/div[3]/div/div").all()
+//    val locators: util.List[Locator] = page.locator("//html/body/div[6]/div/div/div[1]/div/div[3]/div/div").all()
 //    val locators: util.List[Locator] = page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).all()
-    val locators: util.List[Locator] = page.getByLabel("Net Profit").all()
-
+    val locators: util.List[Locator] = page.getByRole(AriaRole.TEXTBOX).all()
+//    val locators: util.List[Locator] = page.getByText("Profit factor Long (Risk to Reward)").all()
     context.log.info(s"locators size: ${locators.size()}")
 
     var counter = 0
-    for locator <- locators.asScala do
-      context.log.info(s"counter: $counter, locator: ${locator.innerHTML()}")
+    for locator: Locator <- locators.asScala do
+      context.log.info(s"counter: $counter, locator: ${locator.inputValue()}")
+      locator.fill(counter.toString)
       counter += 1
+
+//      if counter % 10 == 0 then
+//        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshot_$counter.png")))
   }
+
 }

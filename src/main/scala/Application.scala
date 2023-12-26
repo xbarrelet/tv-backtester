@@ -23,7 +23,7 @@ object Main {
 private class Main(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   context.log.info("The backtester is starting")
 
-  private val mainBacktesterRef: ActorRef[Message] = context.spawn(MainBacktesterActor(), "backtester-actor")
+  private val mainBacktesterRef: ActorRef[Message] = context.spawn(MainBacktesterActor(), "main-backtester-actor")
 
   mainBacktesterRef ! BacktestChartMessage()
 
