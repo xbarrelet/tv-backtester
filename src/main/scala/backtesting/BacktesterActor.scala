@@ -23,6 +23,8 @@ object BacktesterActor {
 class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   private val chartId = sys.env("CHART_ID")
   private var ownPlaywrightService: PlaywrightService = _
+  private val chromiumBrowserType: BrowserType = Playwright.create().chromium()
+  private val browser: Browser = chromiumBrowserType.launch()
   private val browserContext: BrowserContext = InitialiseBrowserContext()
 
 
@@ -47,7 +49,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
           case e: Exception =>
             val counter = Random.nextInt(1000)
             page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"error_$counter.png")))
-            context.log.error(s"Error with id $counter when trying to backtest in the end actor, please check error.png screenshot to get an idea of what is happening:${e.getMessage}")
+            context.log.error(s"Error with id $counter when trying to backtest in the end actor, please check error.png screenshot to get an idea of what is happening:$e")
             page.close()
             context.self ! message
             return this
@@ -72,6 +74,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         context.log.error("Received unknown message in BacktesterActor")
 
       browserContext.close()
+      browser.close()
       Behaviors.stopped
 
 
@@ -91,15 +94,18 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   }
 
   private def getBacktestingResults(page: Page, parametersToTest: List[ParametersToTest]): BacktestingResultMessage = {
-    val netProfitsPercentage: Double = page.locator(netProfitsPercentageValueXPath).innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").toDouble
-    val closedTradesNumber: Int = page.locator(closedTradesNumberXPath).innerText().toInt
-    val profitabilityPercentage: Double = page.locator(profitabilityPercentageValueXPath).innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").toDouble
-    val profitFactor: Double = page.locator(profitFactorValueXPath).innerText().replace("N/A", "0.0").toDouble
-    val maxDrawdownPercentage: Double = page.locator(maxDrawdownPercentValueXPath).innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").toDouble
+    val netProfitsPercentage: Double = getNumberFromResultsFields(page.locator(netProfitsPercentageValueXPath))
+    val closedTradesNumber: Int = getNumberFromResultsFields(page.locator(closedTradesNumberXPath)).toInt
+    val profitabilityPercentage: Double = getNumberFromResultsFields(page.locator(profitabilityPercentageValueXPath))
+    val profitFactor: Double = getNumberFromResultsFields(page.locator(profitFactorValueXPath))
+    val maxDrawdownPercentage: Double = getNumberFromResultsFields(page.locator(maxDrawdownPercentValueXPath))
 
     BacktestingResultMessage(netProfitsPercentage, closedTradesNumber, profitabilityPercentage, profitFactor,
       maxDrawdownPercentage, parametersToTest)
   }
+
+  private def getNumberFromResultsFields(locator: Locator): Double =
+    locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "").toDouble
 
   private def enterParameters(parametersToTest: List[ParametersToTest], page: Page): Unit = {
     for parameterToTest <- parametersToTest do
@@ -160,8 +166,8 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     page
 
   private def InitialiseBrowserContext(): BrowserContext = {
-    val chromiumBrowserType: BrowserType = Playwright.create().chromium()
-    val browser: Browser = chromiumBrowserType.launch()
+//    val chromiumBrowserType: BrowserType = Playwright.create().chromium()
+//    val browser: Browser = chromiumBrowserType.launch()
 
     val browserContext: BrowserContext = browser.newContext(
       Browser.NewContextOptions()

@@ -36,13 +36,14 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
         var TPParametersTuplesToTest: List[List[ParametersToTest]] = List()
 
         //TODO: Faur les processer une apres lautre. Comment faire ca elegamment? Enrober tes source flows?
-//        TPParametersTuplesToTest = addParametersForTPRRShort()
-//        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRShort")
-//        optimizeParameters(TPParametersTuplesToTest)
-
-        TPParametersTuplesToTest = addParametersForTPRRLong()
-        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRLong")
+        //TODO: Saving the best results didn't work last night but the backtesterActor receives the correct SaveParametersMessage. Maybe keyboard? Click through XPATH
+        TPParametersTuplesToTest = addParametersForTPRRShort()
+        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRShort")
         optimizeParameters(TPParametersTuplesToTest)
+
+//        TPParametersTuplesToTest = addParametersForTPRRLong()
+//        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRLong")
+//        optimizeParameters(TPParametersTuplesToTest)
 //        TPParametersTuplesToTest ++= addParametersForTPFixedPercent()
 //        TPParametersTuplesToTest ++= addParametersForTPPips()
 
