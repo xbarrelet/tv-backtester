@@ -108,17 +108,14 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "").toDouble
 
   private def enterParameters(parametersToTest: List[ParametersToTest], page: Page): Unit = {
-    context.log.info(s"1:${page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).all()}")
-    page.getByTitle(Pattern.compile("^THE")).hover()
-    page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"1.png")))
-    context.log.info(s"2:${page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings")).all()}")
-
     if page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).all().size() == 0 then
-      page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings")).click()
-    else
-      page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
+      page.getByTitle(Pattern.compile("^THE")).hover()
 
-    page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"2.png")))
+    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
+
+    page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get("1.png")))
+    page.getByText("Inputs").click()
+    page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get("2.png")))
     page.waitForSelector(welcomeLabelParametersModalXPath).isVisible
 
     for parameterToTest <- parametersToTest do
@@ -194,7 +191,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     cookies.add(new Cookie("cookiesSettings", "{\"analytics\":false,\"advertising\":false}").setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
 
-    browserContext.setDefaultTimeout(30000)
+    browserContext.setDefaultTimeout(10000)
 
     browserContext
   }
