@@ -22,7 +22,6 @@ object BacktesterActor {
 
 class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   private val chartId = sys.env("CHART_ID")
-  private var ownPlaywrightService: PlaywrightService = _
   private val chromiumBrowserType: BrowserType = Playwright.create().chromium()
   private val browser: Browser = chromiumBrowserType.launch()
   private val browserContext: BrowserContext = InitialiseBrowserContext()
@@ -30,8 +29,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case EnrichedBacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message], playwrightService: PlaywrightService) =>
-        ownPlaywrightService = playwrightService
+      case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) =>
         context.log.info(s"Starting backtesting actor:${context.self} for chart $chartId")
 
         val page: Page = getPreparedPage(context.self.toString)
@@ -52,7 +50,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
             context.log.error(s"Error with id $counter when trying to backtest in the end actor, please check error.png screenshot to get an idea of what is happening:$e")
             page.close()
             context.self ! message
-            return this
 
         page.close()
 
@@ -65,9 +62,14 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
         page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
         page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
-        page.keyboard.press("Control+S")
 
-        context.log.info("Parameters saved!")
+        if page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Save all charts for all symbols and intervals on your layout")).all().size() > 0 then
+          page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Save all charts for all symbols and intervals on your layout")).click()
+          Thread.sleep(3000)
+          context.log.info("Best parameters saved")
+        else
+          context.log.info("The saved parameters were already the best ones")
+
         page.close()
 
       case _ =>

@@ -68,11 +68,15 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
 
   private def optimizeParameters(parametersCombinationToTest: List[List[ParametersToTest]]): Unit = {
     Source(parametersCombinationToTest)
-      .throttle(1, Random.between(2500, 5000).millis)
-      .mapAsync(4)(parametersToTest => {
+      .throttle(1, Random.between(1500, 3000).millis)
+      .mapAsync(sys.env("CRAWLERS_NUMBER").toInt)(parametersToTest => {
         backtestersSpawner ? (myRef => BacktestMessage(parametersToTest, myRef))
       })
       .map(_.asInstanceOf[BacktestingResultMessage])
+      .map(result => {
+        logger.info("Received result: " + result)
+        result
+      })
       .filter(_.closedTradesNumber > 30)
       .map(results.append)
       .runWith(Sink.last)
@@ -98,7 +102,8 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
   private def addParametersForTPRRShort(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
-    (5 to 50).map(i => {
+    (12 to 14).map(i => {
+//    (5 to 50).map(i => {
       parametersList.addOne(List(
           ParametersToTest(takeProfitTypeSelectorXPath, "R:R", "selectTakeProfit"),
           ParametersToTest(rrProfitFactorShortXPath, (i / 10.0).toString, "fill")))

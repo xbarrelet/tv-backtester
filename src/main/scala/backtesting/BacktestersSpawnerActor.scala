@@ -24,16 +24,14 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
   implicit val timeout: Timeout = 300.seconds
   private val logger: Logger = LoggerFactory.getLogger("BacktestersSpawnerActor")
   private var actorCounter: Int = 0
-
-  private val playwrightService = new PlaywrightService()
-
+  
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) =>
         val ref: ActorRef[Message] = context.spawn(BacktesterActor(), "BacktesterActor_for_" + actorCounter)
         actorCounter += 1
 
-        val response: Future[Message] =  ref ? (myRef => EnrichedBacktestMessage(parametersToTest, myRef, playwrightService))
+        val response: Future[Message] =  ref ? (myRef => BacktestMessage(parametersToTest, myRef))
 
         response.onComplete {
           case Success(result: Message) => actorRef ! result
