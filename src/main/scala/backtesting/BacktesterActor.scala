@@ -2,6 +2,7 @@ package ch.xavier
 package backtesting
 
 import TVLocators.*
+import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
@@ -30,7 +31,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) =>
-        context.log.info(s"Starting backtesting actor:${context.self} for chart $chartId")
+        context.log.info(s"Starting backtesting actor with parameters:${parametersToTest.map(_.value)}")
 
         val page: Page = getPreparedPage(context.self.toString)
 
@@ -45,15 +46,18 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         }
         catch
           case e: Exception =>
-            val counter = Random.nextInt(1000)
-            page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"error_$counter.png")))
-            context.log.error(s"Error with id $counter when trying to backtest in the end actor, please check error.png screenshot to get an idea of what is happening:$e")
-            page.close()
-            context.self ! message
+            if page.getByText("This strategy did not generate any orders throughout the testing range.").all().size() > 0 then
+//              context.log.debug("Current parameters resulted in no trade")
+              actorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
+            else
+              val errorCounter = Random.nextInt(1000)
+              page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"error_$errorCounter.png")))
+              context.log.error(s"Error with id $errorCounter when trying to backtest in the end actor, please check the screenshot to get an idea of what is happening:$e")
+              context.self ! message
 
         page.close()
 
-      case SaveParametersMessage(parametersToSave: List[ParametersToTest]) =>
+      case SaveParametersMessage(parametersToSave: List[ParametersToTest], ref: ActorRef[Message]) =>
         context.log.info(s"Now saving the best parameters for chart id:$chartId. Parameters:$parametersToSave")
 
         val page: Page = getPreparedPage(context.self.toString)
@@ -63,13 +67,9 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
         page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
 
-        if page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Save all charts for all symbols and intervals on your layout")).all().size() > 0 then
-          page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Save all charts for all symbols and intervals on your layout")).click()
-          Thread.sleep(3000)
-          context.log.info("Best parameters saved")
-        else
-          context.log.info("The saved parameters were already the best ones")
+        save_chart(page)
 
+        ref ! ParametersSaved()
         page.close()
 
       case _ =>
@@ -79,6 +79,16 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       browser.close()
       Behaviors.stopped
 
+
+  private def save_chart(page: Page): Unit = {
+    if page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Save all charts for all symbols and intervals on your layout")).all().size() > 0 then
+      page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Save all charts for all symbols and intervals on your layout")).click()
+      Thread.sleep(3000)
+
+      context.log.info("Best parameters saved")
+    else
+      context.log.info("The saved parameters were already the best ones")
+  }
 
   private def getPreparedPage(stringActorRef: String) = {
     var isPageReady = false
@@ -107,7 +117,12 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   }
 
   private def getNumberFromResultsFields(locator: Locator): Double =
-    locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "").toDouble
+    val innerText = locator.innerText()
+
+    if innerText.contains("−") then
+      0.0
+    else
+      locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "").toDouble
 
   private def enterParameters(parametersToTest: List[ParametersToTest], page: Page): Unit = {
     for parameterToTest <- parametersToTest do
@@ -121,11 +136,21 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
       else if parameterToTest.action.eq("selectTakeProfit") then
         locator.click()
+        page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).waitFor()
         page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).click()
 
       else if parameterToTest.action.eq("selectStopLoss") then
-        locator.click()
+        while page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName("None")).all().size() == 0 do
+          locator.click()
+          Thread.sleep(1000)
+
         page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).click()
+
+      else if parameterToTest.action.eq("check") then
+        val shouldBeClicked = parameterToTest.value.eq("true")
+
+        if locator.isChecked != shouldBeClicked then
+          locator.click()
   }
 
   private def waitForBacktestingResults(page: Page): Unit = {
@@ -168,9 +193,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     page
 
   private def InitialiseBrowserContext(): BrowserContext = {
-//    val chromiumBrowserType: BrowserType = Playwright.create().chromium()
-//    val browser: Browser = chromiumBrowserType.launch()
-
     val browserContext: BrowserContext = browser.newContext(
       Browser.NewContextOptions()
         .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36")
@@ -181,7 +203,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
 
-    browserContext.setDefaultTimeout(30000)
+    browserContext.setDefaultTimeout(60000)
 
     browserContext
   }

@@ -24,7 +24,7 @@ private class Main(context: ActorContext[Message]) extends AbstractBehavior[Mess
 
   private val mainBacktesterRef: ActorRef[Message] = context.spawn(MainBacktesterActor(), "main-backtester-actor")
 
-  mainBacktesterRef ! BacktestChartMessage()
+  mainBacktesterRef ! StartBacktesting()
 
 
   override def onMessage(message: Message): Behavior[Message] =
