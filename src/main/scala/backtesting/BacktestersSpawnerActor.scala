@@ -9,9 +9,12 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.util.Timeout
 import org.slf4j.{Logger, LoggerFactory}
 
+import scala.collection.mutable
+import scala.collection.mutable.Queue
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success}
+import scala.language.postfixOps
+import scala.util.{Failure, Random, Success}
 
 
 
@@ -23,33 +26,41 @@ object BacktestersSpawnerActor {
 class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   implicit val timeout: Timeout = 300.seconds
   private val logger: Logger = LoggerFactory.getLogger("BacktestersSpawnerActor")
-  private var actorCounter: Int = 0
 
-  private val playwrightService = new PlaywrightService()
+  private var backtesterActorsQueue: mutable.Queue[Int] = mutable.Queue()
+  private val backtesterActorsArray: Vector[ActorRef[Message]] = spawnBacktesters
+
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) =>
-        val ref: ActorRef[Message] = context.spawn(BacktesterActor(), "BacktesterActor_for_" + actorCounter)
-        actorCounter += 1
-
-        val response: Future[Message] =  ref ? (myRef => EnrichedBacktestMessage(parametersToTest, myRef, playwrightService))
+        val backtesterActorIndex: Int = backtesterActorsQueue.dequeue()
+        val response: Future[Message] =  backtesterActorsArray(backtesterActorIndex) ? (myRef => EnrichedBacktestMessage(parametersToTest, myRef, backtesterActorIndex))
 
         response.onComplete {
-          case Success(result: Message) => actorRef ! result
+          case Success(result: EnrichedBacktestingResultMessage) =>
+            backtesterActorsQueue.enqueue(result.backtesterIndex)
+            actorRef ! BacktestingResultMessage(result.netProfitsPercentage, result.closedTradesNumber, result.profitabilityPercentage,
+              result.profitFactor, result.maxDrawdownPercentage, result.parameters)
+
           case Failure(ex) =>
             logger.error(s"Problem encountered in SpawnerActor when backtesting:${ex.getMessage}")
             actorRef ! BacktestingResultMessage(0, 0, 0, 0, 0, parametersToTest)
         }
 
       case SaveParametersMessage(parametersToSave: List[ParametersToTest]) =>
-        val ref: ActorRef[Message] = context.spawn(BacktesterActor(), "BacktesterActor_for_" + actorCounter)
-        actorCounter += 1
-
-        ref ! message
+        val backtesterActorIndex: Int = backtesterActorsQueue.head
+        backtesterActorsArray(backtesterActorIndex) ! message
 
       case _ =>
         context.log.warn("Received unknown message in BacktestersSpawnerActor of type: " + message.getClass)
 
       this
+
+  private def spawnBacktesters = {
+    val vector = Vector.fill(sys.env("CRAWLERS_NUMBER").toInt)(context.spawn(BacktesterActor(), "BacktesterActor_for_" + Random.nextInt()))
+    (0 until sys.env("CRAWLERS_NUMBER").toInt).foreach(backtesterActorsQueue.enqueue(_))
+
+    vector
+  }
 }

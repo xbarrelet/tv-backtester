@@ -1,8 +1,9 @@
 package ch.xavier
 
-object TVLocators {
+object TVLocatorsXPaths {
   // MAIN PAGE
   val chartDeepBacktestingScalerXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[1]/div[1]/div[2]/div/span"
+  val saveChartButtonXPath = "//html/body/div[2]/div[3]/div/div/div[3]/div[1]/div/div/div/div/div[14]/div/div/button[1]"
 
   // PARAMETERS MODAL
   val welcomeLabelParametersModalXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[1]/div"

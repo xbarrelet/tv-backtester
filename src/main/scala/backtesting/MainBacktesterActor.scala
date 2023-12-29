@@ -2,7 +2,7 @@ package ch.xavier
 package backtesting
 
 import Application.{executionContext, system}
-import TVLocators.*
+import TVLocatorsXPaths.*
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -37,23 +37,38 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
 
         //TODO: Faur les processer une apres lautre. Comment faire ca elegamment? Enrober tes source flows?
         //TODO: Saving the best results didn't work last night but the backtesterActor receives the correct SaveParametersMessage. Maybe keyboard? Click through XPATH
-        TPParametersTuplesToTest = addParametersForTPRRShort()
-        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRShort")
-        optimizeParameters(TPParametersTuplesToTest)
+        //TODO: Check if  !page.getByRole(AriaRole.SWITCH).isChecked is working as expected
+        //TODO: 16 concurrent windows triggers the ban. You might get bans permanently if it happens too much, play it safe.
+//        TPParametersTuplesToTest = addParametersForTPRRShort()
+//        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRShort")
+//        optimizeParameters(TPParametersTuplesToTest)
 
-//        TPParametersTuplesToTest = addParametersForTPRRLong()
+        TPParametersTuplesToTest = addParametersForTPRRLong()
+        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRLong")
+        optimizeParameters(TPParametersTuplesToTest)
+//        TPParametersTuplesToTest ++= addParametersForTPFixedPercent()
+
+//        TPParametersTuplesToTest = addParametersForTPPips()
 //        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRLong")
 //        optimizeParameters(TPParametersTuplesToTest)
-//        TPParametersTuplesToTest ++= addParametersForTPFixedPercent()
-//        TPParametersTuplesToTest ++= addParametersForTPPips()
+//        TPParametersTuplesToTest = addParametersForSLPips()
+//        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRLong")
+//        optimizeParameters(TPParametersTuplesToTest)
 
+//          TPParametersTuplesToTest = addParametersForTPFixedPercent()
+//          context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRLong")
+//          optimizeParameters(TPParametersTuplesToTest)
+//          TPParametersTuplesToTest = addParametersForSLFixedPercent()
+//          context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRLong")
+//          optimizeParameters(TPParametersTuplesToTest)
         //TODO: Begin with a simple final step Trailing loss + TP?
+        //TODO: also one with the leverage
 //        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation")
 //        optimizeParameters(TPParametersTuplesToTest)
 
-//        var SLParametersTuplesToTest: List[List[ParametersToTest]] = List()
-//
-//        SLParametersTuplesToTest ++= addParametersForSLATR()
+//        TPParametersTuplesToTest = addParametersForSLATR()
+//        context.log.info(s"Testing ${TPParametersTuplesToTest.size} different parameters combinations for TP optimisation in TPRRLong")
+//        optimizeParameters(TPParametersTuplesToTest)
 //        SLParametersTuplesToTest ++= addParametersForSLFixedPercent()
 //        SLParametersTuplesToTest ++= addParametersForSLPips()
 //
@@ -69,10 +84,14 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
   private def optimizeParameters(parametersCombinationToTest: List[List[ParametersToTest]]): Unit = {
     Source(parametersCombinationToTest)
       .throttle(1, Random.between(2500, 5000).millis)
-      .mapAsync(4)(parametersToTest => {
+      .mapAsync(sys.env("CRAWLERS_NUMBER").toInt)(parametersToTest => {
         backtestersSpawner ? (myRef => BacktestMessage(parametersToTest, myRef))
       })
       .map(_.asInstanceOf[BacktestingResultMessage])
+      .map(message =>
+        logger.info("Received backtesting result: " + message)
+        message
+      )
       .filter(_.closedTradesNumber > 30)
       .map(results.append)
       .runWith(Sink.last)
@@ -83,8 +102,8 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
           logger.info("")
           logger.info(s"Best 50 on ${sortedResults.size} results sorted by profit factor:")
 
-          for result <- sortedResults.take(50) do
-            logger.info("Profit factor: " + result.profitFactor + " - " + result.parameters)
+          for result: BacktestingResultMessage <- sortedResults.take(50) do
+            logger.info(s"PF:${result.profitFactor} - NP:${result.netProfitsPercentage} - NT:${result.closedTradesNumber} - value:${result.parameters.last.value}")
 
           logger.info("")
           backtestersSpawner ! SaveParametersMessage(sortedResults.head.parameters)
@@ -109,7 +128,8 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
   private def addParametersForTPRRLong(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
-    (5 to 50).map(i => {
+//    (5 to 50).map(i => {
+    (5 to 15).map(i => {
       parametersList.addOne(List(
         ParametersToTest(takeProfitTypeSelectorXPath, "R:R", "selectTakeProfit"),
         ParametersToTest(rrProfitFactorLongXPath, (i / 10.0).toString, "fill")))

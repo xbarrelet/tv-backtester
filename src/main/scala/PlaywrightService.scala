@@ -30,7 +30,7 @@ class PlaywrightService {
     cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
 
-    browserContext.setDefaultTimeout(30000)
+    browserContext.setDefaultTimeout(60000)
 
     browserContext
   }
