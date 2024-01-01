@@ -26,14 +26,13 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   private val chromiumBrowserType: BrowserType = Playwright.create().chromium()
   private val browser: Browser = chromiumBrowserType.launch()
   private val browserContext: BrowserContext = InitialiseBrowserContext()
+  private var page: Page = preparePage(browserContext.newPage())
 
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) =>
         context.log.info(s"Starting backtesting actor with parameters:${parametersToTest.map(_.value)}")
-
-        val page: Page = getPreparedPage(context.self.toString)
 
         try {
           enterParameters(parametersToTest, page)
@@ -55,12 +54,10 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
               context.log.error(s"Error with id $errorCounter when trying to backtest in the end actor, please check the screenshot to get an idea of what is happening:$e")
               context.self ! message
 
-        page.close()
+        resetPage()
 
       case SaveParametersMessage(parametersToSave: List[ParametersToTest], ref: ActorRef[Message]) =>
         context.log.info(s"Now saving the best parameters for chart id:$chartId. Parameters:$parametersToSave")
-
-        val page: Page = getPreparedPage(context.self.toString)
 
         enterParameters(parametersToSave, page)
 
@@ -69,16 +66,19 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
         save_chart(page)
 
-        ref ! ParametersSaved()
-        page.close()
+        ref ! ParametersSavedMessage()
+        resetPage()
 
       case _ =>
         context.log.error("Received unknown message in BacktesterActor")
 
-      browserContext.close()
-      browser.close()
-      Behaviors.stopped
+      this
 
+
+  private def resetPage(): Unit = {
+    page.close()
+    page = preparePage(browserContext.newPage())
+  }
 
   private def save_chart(page: Page): Unit = {
     if page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Save all charts for all symbols and intervals on your layout")).all().size() > 0 then
@@ -88,21 +88,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       context.log.info("Best parameters saved")
     else
       context.log.info("The saved parameters were already the best ones")
-  }
-
-  private def getPreparedPage(stringActorRef: String) = {
-    var isPageReady = false
-    var page: Page = null
-
-    while !isPageReady do
-      try {
-        page = preparePage(browserContext.newPage())
-        isPageReady = true
-      }
-      catch
-        case e: Exception =>
-          context.log.debug(s"Error when preparing a page in $stringActorRef, trying again")
-    page
   }
 
   private def getBacktestingResults(page: Page, parametersToTest: List[ParametersToTest]): BacktestingResultMessage = {

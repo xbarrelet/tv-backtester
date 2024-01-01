@@ -34,7 +34,6 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
 //      .map(result => logResults(result))
       .filter(_.closedTradesNumber > 125)
       .filter(_.maxDrawdownPercentage < 40)
-//      .filter(_.netProfitsPercentage > 50)
       .map(results.append)
       .runWith(Sink.last)
       .onComplete {
@@ -48,9 +47,16 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
             logger.info(s"Profit factor:${result.profitFactor} - net profit:${result.netProfitsPercentage}% - closed trades:${result.closedTradesNumber} - parameters:${result.parameters}")
           logger.info("")
 
-          backtestersSpawner ? (myRef => SaveParametersMessage(sortedResults.head.parameters, myRef))
-          mainActorRef ! BacktestChartResponseMessage()
-          Behaviors.stopped
+          val saveResultFuture: Future[Message] = backtestersSpawner ? (myRef => SaveParametersMessage(sortedResults.head.parameters, myRef))
+          saveResultFuture.onComplete {
+            case Success(_) =>
+              mainActorRef ! BacktestChartResponseMessage()
+              Behaviors.stopped
+            case Failure(e) =>
+              logger.error("Exception received trying to save the best parameters:" + e)
+              mainActorRef ! BacktestChartResponseMessage()
+              Behaviors.stopped
+          }
 
         case Failure(e) =>
           logger.error("Exception received in RunBacktesting:" + e.printStackTrace())

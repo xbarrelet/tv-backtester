@@ -17,5 +17,5 @@ final case class SaveParametersMessage(parametersToSave: List[ParametersToTest],
 // RESPONSES
 final case class BacktestingResultMessage(netProfitsPercentage: Double, closedTradesNumber: Int, profitabilityPercentage: Double,
                                           profitFactor: Double, maxDrawdownPercentage: Double, parameters: List[ParametersToTest]) extends Message
-final case class ParametersSaved() extends Message
+final case class ParametersSavedMessage() extends Message
 final case class BacktestChartResponseMessage() extends Message
