@@ -44,9 +44,7 @@ private class SLTrailingBacktesterActor(context: ActorContext[Message]) extends 
     )
 
     List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
-      (1 to 76)
-        .filter(_ % 2 == 0)
-        .map(i => {
+      (1 to 75).map(i => {
           parametersList.addOne(List(
             ParametersToTest(trailingLossCheckboxXPath, "true", "check"),
             ParametersToTest(trailingTPCheckboxXPath, "false", "check"),
