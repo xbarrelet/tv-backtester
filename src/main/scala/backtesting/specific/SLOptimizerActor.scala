@@ -36,7 +36,7 @@ private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractB
 
         Source(backtesters)
           .mapAsync(1)(backtesterRef => {
-            backtesterRef ? (myRef => message)
+            backtesterRef ? (myRef => BacktestSpecificPartMessage(myRef, chartId))
           })
           .runWith(Sink.last)
           .onComplete {

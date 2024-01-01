@@ -53,7 +53,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
           logger.info(s"Best 50 on ${sortedResults.size} results sorted by profit factor:")
 
           for result <- sortedResults.take(50) do
-            logger.info(s"Profit factor:${result.profitFactor} - net profit:${result.netProfitsPercentage}% - closed trades:${result.closedTradesNumber} - parameters:${result.parameters}")
+            logger.info(s"Profit factor:${result.profitFactor} - net profit:${result.netProfitsPercentage}% - closed trades:${result.closedTradesNumber} - parameters:${result.parameters.map(_.value)}")
           logger.info("")
 
           val saveResultFuture: Future[Message] = backtestersSpawner ? (myRef => SaveParametersMessage(sortedResults.head.parameters, myRef))

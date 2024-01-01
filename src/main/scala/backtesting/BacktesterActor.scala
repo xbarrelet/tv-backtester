@@ -44,7 +44,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
           actorRef ! getBacktestingResults(page, parametersToTest)
         }
         catch
-          case timeoutException:TimeoutError =>
+          case timeoutException: TimeoutError =>
             if page.getByText("This strategy did not generate any orders throughout the testing range.").all().size() > 0 then
               context.log.debug("Current parameters resulted in no trade.")
               actorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
@@ -77,7 +77,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       case _ =>
         context.log.error("Received unknown message in BacktesterActor")
 
-      this
+    this
 
 
   private def resetPage(): Unit = {

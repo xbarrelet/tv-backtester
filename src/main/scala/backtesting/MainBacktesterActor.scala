@@ -31,7 +31,7 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
         context.log.info(s"Starting backtesting for chart $chartId")
 
         val backtesters: List[ActorRef[Message]] = List(
-          context.spawn(SLOptimizerActor(), "sl-optimizer"),
+//          context.spawn(SLOptimizerActor(), "sl-optimizer"),
           context.spawn(TPOptimizerActor(), "tp-optimizer"),
         )
         //TODO: I'm supposed to use a few years period. And it would be nice to use the latest 6 months for example to test the strat after optimization.
