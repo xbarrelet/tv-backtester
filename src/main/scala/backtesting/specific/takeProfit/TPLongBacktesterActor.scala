@@ -51,7 +51,7 @@ private class TPLongBacktesterActor(context: ActorContext[Message]) extends Abst
   private def addParametersForTPFixedPercentLong(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
-    (5 to 150).map(i => {
+    (5 to 100).map(i => {
       parametersList.addOne(List(
         ParametersToTest(takeProfitTypeSelectorXPath, "Fixed Percent", "selectOption"),
         ParametersToTest(fixedPercentTPLongXPath, (i / 10.0).toString, "fill")))

@@ -29,8 +29,8 @@ private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractB
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message]) =>
         val backtesters: List[ActorRef[Message]] = List(
-//          context.spawn(SLShortBacktesterActor(), "sl-short-backtester"),
-//          context.spawn(SLLongBacktesterActor(), "sl-long-backtester"),
+          context.spawn(SLShortBacktesterActor(), "sl-short-backtester"),
+          context.spawn(SLLongBacktesterActor(), "sl-long-backtester"),
           context.spawn(SLTrailingBacktesterActor(), "sl-trailing-backtester"),
         )
 
@@ -43,6 +43,7 @@ private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractB
             case Success(result) =>
               logger.info("SL optimization now complete.")
               mainActorRef ! BacktestChartResponseMessage()
+              System.gc()
             case Failure(e) =>
               logger.error("Exception received during SL optimization:" + e)
           }

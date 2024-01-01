@@ -12,6 +12,7 @@ import akka.util.Timeout
 import org.slf4j.Logger
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Random, Success}
 
@@ -32,6 +33,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
       .map(_.asInstanceOf[BacktestingResultMessage])
 //      .map(result => logResults(result))
       .filter(_.closedTradesNumber > 125)
+      .filter(_.maxDrawdownPercentage < 40)
 //      .filter(_.netProfitsPercentage > 50)
       .map(results.append)
       .runWith(Sink.last)
@@ -51,7 +53,9 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
           Behaviors.stopped
 
         case Failure(e) =>
-          logger.error("Exception received in RunBacktesting:" + e)
+          logger.error("Exception received in RunBacktesting:" + e.printStackTrace())
+          mainActorRef ! BacktestChartResponseMessage()
+          Behaviors.stopped
       }
   }
 
