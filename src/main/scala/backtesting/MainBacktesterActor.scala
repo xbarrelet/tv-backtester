@@ -21,7 +21,7 @@ object MainBacktesterActor {
 }
 
 class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
-  implicit val timeout: Timeout = 300.seconds
+  implicit val timeout: Timeout = 3600.seconds
   private val logger: Logger = LoggerFactory.getLogger("MainBacktesterActor")
 
   override def onMessage(message: Message): Behavior[Message] =
@@ -30,9 +30,12 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
         context.log.info(s"Starting backtesting for chart ${sys.env("CHART_ID")}")
 
         val backtesters: List[ActorRef[Message]] = List(
-//          context.spawn(SLOptimizerActor(), "sl-optimizer"),
+          context.spawn(SLOptimizerActor(), "sl-optimizer"),
           context.spawn(TPOptimizerActor(), "tp-optimizer"),
         )
+        //TODO: I'm supposed to use a few years period. And it would be nice to use the latest 6 months for example to test the strat after optimization.
+
+     //Also, after reviewing few 5 mins strtaegies - avoid them. Squeeze It is overoptimised. My goal is to focu on trending strategies (like Supertrend, Pmax, McGinley etc) that can follow a pump, and are not losing on dumps
 
         Source(backtesters)
           .mapAsync(1)(backtesterRef => {
@@ -45,7 +48,6 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
 
             case Failure(e) =>
               logger.error("Exception received during global backtesting:" + e)
-
           }
 
       case _ =>

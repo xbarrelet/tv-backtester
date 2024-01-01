@@ -42,7 +42,7 @@ private class SLLongBacktesterActor(context: ActorContext[Message]) extends Abst
 
     (5 to 100).map(i => {
       parametersList.addOne(List(
-        ParametersToTest(stopLossTypeSelectorXPath, "ATR", "selectStopLoss"),
+        ParametersToTest(stopLossTypeSelectorXPath, "ATR", "selectOption"),
         ParametersToTest(fixedPercentSLLongXPath, (i / 10.0).toString, "fill")))
     })
 
@@ -54,7 +54,7 @@ private class SLLongBacktesterActor(context: ActorContext[Message]) extends Abst
 
     (5 to 150).map(i => {
       parametersList.addOne(List(
-        ParametersToTest(stopLossTypeSelectorXPath, "Fixed Percent", "selectStopLoss"),
+        ParametersToTest(stopLossTypeSelectorXPath, "Fixed Percent", "selectOption"),
         ParametersToTest(fixedPercentSLLongXPath, (i / 10.0).toString, "fill")))
     })
 
@@ -67,7 +67,7 @@ private class SLLongBacktesterActor(context: ActorContext[Message]) extends Abst
     (50 to 300).map(i => {
       if i % 5 == 0 then
         parametersList.addOne(List(
-          ParametersToTest(stopLossTypeSelectorXPath, "PIPS", "selectStopLoss"),
+          ParametersToTest(stopLossTypeSelectorXPath, "PIPS", "selectOption"),
           ParametersToTest(fixedPercentSLLongXPath, i.toString, "fill")))
     })
 

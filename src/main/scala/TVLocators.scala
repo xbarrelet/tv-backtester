@@ -43,7 +43,7 @@ object TVLocators {
 
   // Leverage
   val leverageAmountXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[128]/div/span/span[1]/input"
-  val dynamicLeverageCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[131]/div/label/span[1]/input"
+  val dynamicLeverageCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[131]/div/label"
 
 
   // BACKTESTING RESULTS

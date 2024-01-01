@@ -6,7 +6,7 @@ import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext}
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
 import org.slf4j.Logger
@@ -30,11 +30,8 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
         backtestersSpawner ? (myRef => BacktestMessage(parametersToTest, myRef))
       })
       .map(_.asInstanceOf[BacktestingResultMessage])
-      .map(result =>
-        logger.info("Result received for parameters: " + result.parameters.map(_.value))
-        result
-      )
-      .filter(_.closedTradesNumber > 30)
+//      .map(result => logResults(result))
+      .filter(_.closedTradesNumber > 125)
 //      .filter(_.netProfitsPercentage > 50)
       .map(results.append)
       .runWith(Sink.last)
@@ -51,9 +48,18 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
 
           backtestersSpawner ? (myRef => SaveParametersMessage(sortedResults.head.parameters, myRef))
           mainActorRef ! BacktestChartResponseMessage()
+          Behaviors.stopped
 
         case Failure(e) =>
           logger.error("Exception received in RunBacktesting:" + e)
       }
+  }
+
+  private def logResults(result: BacktestingResultMessage) = {
+    if result.closedTradesNumber == 0 then
+      logger.info("No positive result received for parameters: " + result.parameters.map(_.value))
+    else
+      logger.info("Result received for parameters: " + result.parameters.map(_.value) + s" with details: Profit factor:${result.profitFactor} - net profit:${result.netProfitsPercentage}% - closed trades:${result.closedTradesNumber}")
+    result
   }
 }

@@ -30,9 +30,9 @@ private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractB
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message]) =>
         val backtesters: List[ActorRef[Message]] = List(
-          context.spawn(TPLongBacktesterActor(), "tp-long-backtester"),
           context.spawn(TPShortBacktesterActor(), "tp-short-backtester"),
-//          context.spawn(TPLeverageBacktesterActor(), "tp-leverage-backtester")
+          context.spawn(TPLongBacktesterActor(), "tp-long-backtester"),
+          context.spawn(TPLeverageBacktesterActor(), "tp-leverage-backtester")
         )
 
         Source(backtesters)
@@ -43,7 +43,7 @@ private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractB
           .runWith(Sink.last)
           .onComplete {
             case Success(result) =>
-              logger.info("Optimization now complete, have a nice day :)")
+              logger.info("TP Optimization now complete.")
               mainActorRef ! BacktestChartResponseMessage()
             case Failure(e) =>
               logger.error("Exception received during TP optimization:" + e)

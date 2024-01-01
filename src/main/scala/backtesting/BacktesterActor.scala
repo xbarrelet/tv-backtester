@@ -35,9 +35,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
         val page: Page = getPreparedPage(context.self.toString)
 
-        //        displayAllLocators(page)
-//        actorRef ! BacktestingResultMessage(0, 0, 0, 0, 0, parametersToTest)
-
         try {
           enterParameters(parametersToTest, page)
 
@@ -45,6 +42,9 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
           actorRef ! getBacktestingResults(page, parametersToTest)
         }
         catch
+          case timeoutException:TimeoutError =>
+            context.log.warn(s"Timeout error when trying to backtest in the end actor, trying again:$timeoutException")
+            context.self ! message
           case e: Exception =>
             if page.getByText("This strategy did not generate any orders throughout the testing range.").all().size() > 0 then
 //              context.log.debug("Current parameters resulted in no trade")
@@ -132,25 +132,21 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         locator.fill(parameterToTest.value)
 
       else if parameterToTest.action.eq("selectOption") then
-        locator.selectOption(parameterToTest.value)
-
-      else if parameterToTest.action.eq("selectTakeProfit") then
-        locator.click()
-        page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).waitFor()
-        page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).click()
-
-      else if parameterToTest.action.eq("selectStopLoss") then
-        while page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName("None")).all().size() == 0 do
-          locator.click()
-          Thread.sleep(1000)
-
-        page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).click()
+        selectOption(page, parameterToTest, locator)
 
       else if parameterToTest.action.eq("check") then
         val shouldBeClicked = parameterToTest.value.eq("true")
 
         if locator.isChecked != shouldBeClicked then
-          locator.click()
+          locator.check()
+  }
+
+  private def selectOption(page: Page, parameterToTest: ParametersToTest, locator: Locator): Unit = {
+    while page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).all().size() == 0 do
+      locator.click()
+      Thread.sleep(1000)
+
+    page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).click()
   }
 
   private def waitForBacktestingResults(page: Page): Unit = {
@@ -163,23 +159,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       generateReportButton.click()
 
     page.getByLabel("Net Profit").waitFor()
-  }
-
-  private def displayAllLocators(page: Page): Unit = {
-//    val locators: util.List[Locator] = page.locator("//html/body/div[6]/div/div/div[1]/div/div[3]/div/div").all()
-//    val locators: util.List[Locator] = page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).all()
-    val locators: util.List[Locator] = page.getByRole(AriaRole.TEXTBOX).all()
-//    val locators: util.List[Locator] = page.getByText("Profit factor Long (Risk to Reward)").all()
-    context.log.info(s"locators size: ${locators.size()}")
-
-    var counter = 0
-    for locator: Locator <- locators.asScala do
-      context.log.info(s"counter: $counter, locator: ${locator.inputValue()}")
-      locator.fill(counter.toString)
-      counter += 1
-
-//      if counter % 10 == 0 then
-//        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshot_$counter.png")))
   }
 
   private def preparePage(page: Page): Page =
@@ -203,7 +182,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
 
-    browserContext.setDefaultTimeout(60000)
+    browserContext.setDefaultTimeout(120000)
 
     browserContext
   }

@@ -39,9 +39,9 @@ private class SLShortBacktesterActor(context: ActorContext[Message]) extends Abs
   private def addParametersForSLShortFixedPercent(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
-    (5 to 150).map(i => {
+    (5 to 75).map(i => {
       parametersList.addOne(List(
-        ParametersToTest(stopLossTypeSelectorXPath, "Fixed Percent", "selectStopLoss"),
+        ParametersToTest(stopLossTypeSelectorXPath, "Fixed Percent", "selectOption"),
         ParametersToTest(fixedPercentSLShortXPath, (i / 10.0).toString, "fill")))
     })
 
@@ -54,7 +54,7 @@ private class SLShortBacktesterActor(context: ActorContext[Message]) extends Abs
     (50 to 300).map(i => {
       if i % 5 == 0 then
         parametersList.addOne(List(
-          ParametersToTest(stopLossTypeSelectorXPath, "PIPS", "selectStopLoss"),
+          ParametersToTest(stopLossTypeSelectorXPath, "PIPS", "selectOption"),
           ParametersToTest(fixedPercentSLShortXPath, i.toString, "fill")))
     })
 

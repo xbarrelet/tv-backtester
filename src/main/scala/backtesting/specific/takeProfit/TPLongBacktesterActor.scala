@@ -42,7 +42,7 @@ private class TPLongBacktesterActor(context: ActorContext[Message]) extends Abst
 
     (5 to 50).map(i => {
       parametersList.addOne(List(
-        ParametersToTest(takeProfitTypeSelectorXPath, "R:R", "selectTakeProfit"),
+        ParametersToTest(takeProfitTypeSelectorXPath, "R:R", "selectOption"),
         ParametersToTest(rrProfitFactorLongXPath, (i / 10.0).toString, "fill")))
     })
 
@@ -53,7 +53,7 @@ private class TPLongBacktesterActor(context: ActorContext[Message]) extends Abst
 
     (5 to 150).map(i => {
       parametersList.addOne(List(
-        ParametersToTest(takeProfitTypeSelectorXPath, "Fixed Percent", "selectTakeProfit"),
+        ParametersToTest(takeProfitTypeSelectorXPath, "Fixed Percent", "selectOption"),
         ParametersToTest(fixedPercentTPLongXPath, (i / 10.0).toString, "fill")))
     })
 
@@ -66,7 +66,7 @@ private class TPLongBacktesterActor(context: ActorContext[Message]) extends Abst
     (50 to 300).map(i => {
       if i % 5 == 0 then
         parametersList.addOne(List(
-          ParametersToTest(takeProfitTypeSelectorXPath, "PIPS", "selectTakeProfit"),
+          ParametersToTest(takeProfitTypeSelectorXPath, "PIPS", "selectOption"),
           ParametersToTest(fixedPercentTPLongXPath, i.toString, "fill")))
     })
 
