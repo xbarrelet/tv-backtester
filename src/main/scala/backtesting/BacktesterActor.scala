@@ -12,7 +12,6 @@ import com.microsoft.playwright.options.{AriaRole, Cookie}
 
 import java.nio.file.Paths
 import java.util
-import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 
@@ -22,16 +21,20 @@ object BacktesterActor {
 }
 
 class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
-  private val chartId = sys.env("CHART_ID")
+  private var chartId = ""
   private val chromiumBrowserType: BrowserType = Playwright.create().chromium()
   private val browser: Browser = chromiumBrowserType.launch()
   private val browserContext: BrowserContext = InitialiseBrowserContext()
-  private var page: Page = preparePage(browserContext.newPage())
+  private var page: Page = null
 
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) =>
+      case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message], chartIdFromMessage: String) =>
+        chartId = chartIdFromMessage
+        if page == null then
+          page = preparePage(browserContext.newPage())
+
         context.log.info(s"Starting backtesting actor with parameters:${parametersToTest.map(_.value)}")
 
         try {
@@ -42,22 +45,24 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         }
         catch
           case timeoutException:TimeoutError =>
-            context.log.warn(s"Timeout error when trying to backtest in the end actor, trying again:$timeoutException")
-            context.self ! message
-          case e: Exception =>
             if page.getByText("This strategy did not generate any orders throughout the testing range.").all().size() > 0 then
-//              context.log.debug("Current parameters resulted in no trade")
+              context.log.debug("Current parameters resulted in no trade.")
               actorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
             else
               val errorCounter = Random.nextInt(1000)
-              page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"error_$errorCounter.png")))
-              context.log.error(s"Error with id $errorCounter when trying to backtest in the end actor, please check the screenshot to get an idea of what is happening:$e")
+              page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_$errorCounter.png")))
+              context.log.warn(s"Timeout error id:$errorCounter when trying to backtest in the end actor, trying again:$timeoutException")
               context.self ! message
+          case e: Exception =>
+            val errorCounter = Random.nextInt(1000)
+            page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"error_$errorCounter.png")))
+            context.log.error(s"Error with id $errorCounter when trying to backtest in the end actor, please check the screenshot to get an idea of what is happening:$e")
+            context.self ! message
 
         resetPage()
 
       case SaveParametersMessage(parametersToSave: List[ParametersToTest], ref: ActorRef[Message]) =>
-        context.log.info(s"Now saving the best parameters for chart id:$chartId. Parameters:$parametersToSave")
+        context.log.info(s"Now saving the best parameters for chart id:$chartId. Parameters:${parametersToSave.map(_.value)}")
 
         enterParameters(parametersToSave, page)
 
@@ -142,8 +147,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     val generateReportButton = page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).first()
     if generateReportButton.isEnabled then
       generateReportButton.click()
-
-    page.getByLabel("Net Profit").waitFor()
   }
 
   private def preparePage(page: Page): Page =
@@ -167,7 +170,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
 
-    browserContext.setDefaultTimeout(120000)
+    browserContext.setDefaultTimeout(90000)
 
     browserContext
   }

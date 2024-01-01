@@ -24,21 +24,30 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
   private val results: ListBuffer[BacktestingResultMessage] = ListBuffer()
 
 
-  def optimizeParameters(parametersCombinationToTest: List[List[ParametersToTest]], mainActorRef: ActorRef[Message]): Unit = {
+  def optimizeParameters(parametersCombinationToTest: List[List[ParametersToTest]], mainActorRef: ActorRef[Message], chartId: String, evaluationParameter: String = "profitFactor"): Unit = {
     Source(parametersCombinationToTest)
       .throttle(1, Random.between(2500, 5000).millis)
       .mapAsync(sys.env("CRAWLERS_NUMBER").toInt)(parametersToTest => {
-        backtestersSpawner ? (myRef => BacktestMessage(parametersToTest, myRef))
+        backtestersSpawner ? (myRef => BacktestMessage(parametersToTest, myRef, chartId: String))
       })
       .map(_.asInstanceOf[BacktestingResultMessage])
 //      .map(result => logResults(result))
-      .filter(_.closedTradesNumber > 125)
-      .filter(_.maxDrawdownPercentage < 40)
+      .filter(_.closedTradesNumber > 100)
+      .filter(_.maxDrawdownPercentage < 30)
       .map(results.append)
       .runWith(Sink.last)
       .onComplete {
         case Success(result) =>
-          val sortedResults = results.sortWith(_.profitFactor > _.profitFactor).toList
+          if results.isEmpty then
+            logger.info("No positive result received.")
+            mainActorRef ! BacktestChartResponseMessage()
+            Behaviors.stopped
+
+          var sortedResults: List[BacktestingResultMessage] = List[BacktestingResultMessage]()
+          if evaluationParameter.eq("profitFactor") then
+            sortedResults = results.sortWith(_.profitFactor > _.profitFactor).toList
+          else
+            sortedResults = results.sortWith(_.netProfitsPercentage > _.netProfitsPercentage).toList
 
           logger.info("")
           logger.info(s"Best 50 on ${sortedResults.size} results sorted by profit factor:")

@@ -27,7 +27,7 @@ private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractB
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message]) =>
+      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val backtesters: List[ActorRef[Message]] = List(
           context.spawn(SLShortBacktesterActor(), "sl-short-backtester"),
           context.spawn(SLLongBacktesterActor(), "sl-long-backtester"),
@@ -36,14 +36,13 @@ private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractB
 
         Source(backtesters)
           .mapAsync(1)(backtesterRef => {
-            backtesterRef ? (myRef => BacktestSpecificPartMessage(myRef))
+            backtesterRef ? (myRef => message)
           })
           .runWith(Sink.last)
           .onComplete {
             case Success(result) =>
               logger.info("SL optimization now complete.")
               mainActorRef ! BacktestChartResponseMessage()
-              System.gc()
             case Failure(e) =>
               logger.error("Exception received during SL optimization:" + e)
           }

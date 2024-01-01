@@ -22,7 +22,7 @@ private class SLLongBacktesterActor(context: ActorContext[Message]) extends Abst
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message]) =>
+      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val parametersTuplesToTest: List[List[ParametersToTest]] =
           addParametersForSLATR()
             ::: addParametersForSLLongFixedPercent()
@@ -30,7 +30,7 @@ private class SLLongBacktesterActor(context: ActorContext[Message]) extends Abst
           
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for SL Long optimisation")
         
-        optimizeParameters(parametersTuplesToTest, mainActorRef)
+        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
       case _ =>
         context.log.warn("Received unknown message in SLLongBacktesterActor of type: " + message.getClass)
 

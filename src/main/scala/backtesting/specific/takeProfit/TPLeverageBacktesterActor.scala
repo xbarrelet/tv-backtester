@@ -22,12 +22,12 @@ private class TPLeverageBacktesterActor(context: ActorContext[Message]) extends 
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message]) =>
+      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val parametersTuplesToTest: List[List[ParametersToTest]] = addParametersForLeverage()
           
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for TP leverage optimisation")
-        
-        optimizeParameters(parametersTuplesToTest, mainActorRef)
+
+        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId, evaluationParameter = "netProfitsPercentage")
       case _ =>
         context.log.warn("Received unknown message in TPLeverageBacktesterActor of type: " + message.getClass)
 

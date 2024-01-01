@@ -31,10 +31,10 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
   
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message]) =>
+      case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message], chartId: String) =>
         val ref: ActorRef[Message] = backtestersPool.dequeue()
 
-        val response: Future[Message] =  ref ? (myRef => BacktestMessage(parametersToTest, myRef))
+        val response: Future[Message] =  ref ? (myRef => BacktestMessage(parametersToTest, myRef, chartId))
 
         response.onComplete {
           case Success(result: Message) =>

@@ -22,13 +22,13 @@ private class SLTrailingBacktesterActor(context: ActorContext[Message]) extends 
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message]) =>
+      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val parametersTuplesToTest: List[List[ParametersToTest]] =
           addParametersForSLTrailing()
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for SL trailing optimisation")
 
-        optimizeParameters(parametersTuplesToTest, mainActorRef)
+        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
       case _ =>
         context.log.warn("Received unknown message in SLTrailingBacktesterActor of type: " + message.getClass)
 
@@ -44,20 +44,22 @@ private class SLTrailingBacktesterActor(context: ActorContext[Message]) extends 
     )
 
     List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
-      (1 to 75).map(i => {
-        parametersList.addOne(List(
-          ParametersToTest(trailingLossCheckboxXPath, "true", "check"),
-          ParametersToTest(trailingTPCheckboxXPath, "false", "check"),
-          ParametersToTest(whenToActivateTrailingXPath, condition, "selectOption"),
-          ParametersToTest(atrTLMultiplierXPath, (i / 10.0).toString, "fill"))
-        )
-        parametersList.addOne(List(
-          ParametersToTest(trailingLossCheckboxXPath, "true", "check"),
-          ParametersToTest(trailingTPCheckboxXPath, "true", "check"),
-          ParametersToTest(whenToActivateTrailingXPath, condition, "selectOption"),
-          ParametersToTest(atrTLMultiplierXPath, (i / 10.0).toString, "fill"))
-        )
-      })
+      (1 to 76)
+        .filter(_ % 2 == 0)
+        .map(i => {
+          parametersList.addOne(List(
+            ParametersToTest(trailingLossCheckboxXPath, "true", "check"),
+            ParametersToTest(trailingTPCheckboxXPath, "false", "check"),
+            ParametersToTest(whenToActivateTrailingXPath, condition, "selectOption"),
+            ParametersToTest(atrTLMultiplierXPath, (i / 10.0).toString, "fill"))
+          )
+          parametersList.addOne(List(
+            ParametersToTest(trailingLossCheckboxXPath, "true", "check"),
+            ParametersToTest(trailingTPCheckboxXPath, "true", "check"),
+            ParametersToTest(whenToActivateTrailingXPath, condition, "selectOption"),
+            ParametersToTest(atrTLMultiplierXPath, (i / 10.0).toString, "fill"))
+          )
+        })
     })
 
 

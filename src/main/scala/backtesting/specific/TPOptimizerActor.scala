@@ -28,18 +28,17 @@ private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractB
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message]) =>
+      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val backtesters: List[ActorRef[Message]] = List(
-          context.spawn(TPShortBacktesterActor(), "tp-short-backtester"),
-          context.spawn(TPLongBacktesterActor(), "tp-long-backtester"),
+//          context.spawn(TPShortBacktesterActor(), "tp-short-backtester"),
+//          context.spawn(TPLongBacktesterActor(), "tp-long-backtester"),
           context.spawn(TPLeverageBacktesterActor(), "tp-leverage-backtester")
         )
 
         Source(backtesters)
           .mapAsync(1)(backtesterRef => {
-            backtesterRef ? (myRef => BacktestSpecificPartMessage(myRef))
+            backtesterRef ? (myRef => message)
           })
-          .map(answer => logger.info("TP Optimizer received answer: " + answer))
           .runWith(Sink.last)
           .onComplete {
             case Success(result) =>

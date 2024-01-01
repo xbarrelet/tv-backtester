@@ -22,14 +22,14 @@ private class SLShortBacktesterActor(context: ActorContext[Message]) extends Abs
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message]) =>
+      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val parametersTuplesToTest: List[List[ParametersToTest]] =
             addParametersForSLShortFixedPercent()
 //            ::: addParametersForSLShortPips()
           
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for SL short optimisation")
         
-        optimizeParameters(parametersTuplesToTest, mainActorRef)
+        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
       case _ =>
         context.log.warn("Received unknown message in SLShortBacktesterActor of type: " + message.getClass)
 
