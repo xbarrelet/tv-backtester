@@ -23,7 +23,7 @@ object BacktestersSpawnerActor {
 }
 
 class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
-  implicit val timeout: Timeout = 300.seconds
+  implicit val timeout: Timeout = 1800.seconds
   private val logger: Logger = LoggerFactory.getLogger("BacktestersSpawnerActor")
   private val backtestersPool: mutable.Queue[ActorRef[Message]] = instantiateBacktestersPool()
   private var actorsCounter = 0
@@ -56,7 +56,8 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
             actorRef ! ParametersSavedMessage()
             backtestersPool.enqueue(ref)
           case Failure(ex) =>
-            logger.error(s"Problem encountered in SpawnerActor when saving the parameter:${ex.getMessage}")
+            logger.error(s"Problem encountered in SpawnerActor when saving the parameter, sending new message:${ex.getMessage}")
+            ref ! message
             actorRef ! ParametersSavedMessage()
             backtestersPool.enqueue(ref)
         }

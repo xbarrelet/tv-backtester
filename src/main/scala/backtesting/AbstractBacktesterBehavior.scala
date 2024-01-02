@@ -31,7 +31,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
         backtestersSpawner ? (myRef => BacktestMessage(parametersToTest, myRef, chartId: String))
       })
       .map(_.asInstanceOf[BacktestingResultMessage])
-//      .map(result => logResults(result))
+      .map(result => logResults(result))
       .filter(_.closedTradesNumber > 100)
       .filter(_.maxDrawdownPercentage < 30)
       .map(results.append)

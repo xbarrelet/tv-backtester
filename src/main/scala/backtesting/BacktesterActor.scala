@@ -22,9 +22,7 @@ object BacktesterActor {
 
 class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   private var chartId = ""
-  private val chromiumBrowserType: BrowserType = Playwright.create().chromium()
-  private val browser: Browser = chromiumBrowserType.launch()
-  private val browserContext: BrowserContext = InitialiseBrowserContext()
+  private var browserContext: BrowserContext = null
   private var page: Page = null
 
 
@@ -32,10 +30,10 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     message match
       case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message], chartIdFromMessage: String) =>
         chartId = chartIdFromMessage
+        
         if page == null then
-          page = preparePage(browserContext.newPage())
-
-        context.log.info(s"Starting backtesting actor with parameters:${parametersToTest.map(_.value)}")
+          createNewPage()
+//        context.log.info(s"Starting backtesting actor with parameters:${parametersToTest.map(_.value)}")
 
         try {
           enterParameters(parametersToTest, page)
@@ -82,7 +80,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
   private def resetPage(): Unit = {
     page.close()
-    page = preparePage(browserContext.newPage())
+    createNewPage()
   }
 
   private def save_chart(page: Page): Unit = {
@@ -128,7 +126,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         val shouldBeClicked = parameterToTest.value.eq("true")
 
         if locator.isChecked != shouldBeClicked then
-          locator.check()
+          locator.setChecked(!locator.isChecked())
   }
 
   private def selectOption(page: Page, parameterToTest: ParametersToTest, locator: Locator): Unit = {
@@ -149,18 +147,40 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       generateReportButton.click()
   }
 
-  private def preparePage(page: Page): Page =
+  private def createNewPage(): Unit =
+    if browserContext == null then
+      InitialiseBrowserContext()
+
+    try {
+      openChartAndGoToSettings()
+    }
+    catch {
+      case e: TimeoutError =>
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_page_${Random.nextInt()}.png")))
+        context.log.warn(s"Timeout error when trying to get a new page, trying again:$e")
+
+        page.close()
+        openChartAndGoToSettings()
+    }
+
+
+  private def openChartAndGoToSettings(): Unit = {
+    page = browserContext.newPage()
+
     page.navigate(s"https://www.tradingview.com/chart/${sys.env("CHART_ID")}/")
-    page.waitForSelector(chartDeepBacktestingScalerXPath).isVisible
+    page.getByText("Deep Backtesting").waitFor()
 
     page.getByRole(AriaRole.SWITCH).click()
 
     page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
-    page.waitForSelector(welcomeLabelParametersModalXPath).isVisible
-    page
+    page.getByText("Core Boilerplate Version").waitFor()
+  }
 
-  private def InitialiseBrowserContext(): BrowserContext = {
-    val browserContext: BrowserContext = browser.newContext(
+  private def InitialiseBrowserContext(): Unit = {
+    val chromiumBrowserType: BrowserType = Playwright.create().chromium()
+    val browser: Browser = chromiumBrowserType.launch()
+    
+    browserContext = browser.newContext(
       Browser.NewContextOptions()
         .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36")
         .setViewportSize(1920, 1080)
@@ -171,7 +191,5 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     browserContext.addCookies(cookies)
 
     browserContext.setDefaultTimeout(90000)
-
-    browserContext
   }
 }
