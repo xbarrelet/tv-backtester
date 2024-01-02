@@ -62,6 +62,10 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
             backtestersPool.enqueue(ref)
         }
 
+      case CloseBacktesterMessage() =>
+        backtestersPool.foreach(ref => ref ! CloseBacktesterMessage())
+        Behaviors.stopped
+
       case _ =>
         context.log.warn("Received unknown message in BacktestersSpawnerActor of type: " + message.getClass)
 

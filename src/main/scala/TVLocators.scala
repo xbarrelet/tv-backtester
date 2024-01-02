@@ -49,6 +49,7 @@ object TVLocators {
   // BACKTESTING RESULTS
   //  val resultsPanelXPath =           "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]"
   val netProfitsPercentageValueXPath =    "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[1]/div[2]/div[2]"
+//  val netProfitsPercentageValueXPath =    "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[2]/div/div[1]/div[1]/div[2]/div[2]"
   val closedTradesNumberXPath =           "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[2]/div[2]/div[1]"
   val profitabilityPercentageValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[3]/div[2]/div[1]"
   val profitFactorValueXPath =            "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[4]/div[2]/div[1]"

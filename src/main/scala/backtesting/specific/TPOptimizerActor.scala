@@ -44,6 +44,8 @@ private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractB
             case Success(result) =>
               logger.info("TP Optimization now complete.")
               mainActorRef ! BacktestChartResponseMessage()
+              Behaviors.stopped
+              
             case Failure(e) =>
               logger.error("Exception received during TP optimization:" + e)
           }

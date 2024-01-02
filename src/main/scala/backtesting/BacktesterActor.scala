@@ -21,6 +21,9 @@ object BacktesterActor {
 }
 
 class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
+  private val playwright: Playwright = Playwright.create()
+  private val chromiumBrowserType: BrowserType = playwright.chromium()
+  private val browser: Browser = chromiumBrowserType.launch()
   private var chartId = ""
   private var browserContext: BrowserContext = null
   private var page: Page = null
@@ -33,7 +36,8 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         
         if page == null then
           createNewPage()
-//        context.log.info(s"Starting backtesting actor with parameters:${parametersToTest.map(_.value)}")
+
+        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
 
         try {
           enterParameters(parametersToTest, page)
@@ -43,14 +47,8 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         }
         catch
           case timeoutException: TimeoutError =>
-            if page.getByText("This strategy did not generate any orders throughout the testing range.").all().size() > 0 then
-              context.log.debug("Current parameters resulted in no trade.")
-              actorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
-            else
-              val errorCounter = Random.nextInt(1000)
-              page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_$errorCounter.png")))
-              context.log.warn(s"Timeout error id:$errorCounter when trying to backtest in the end actor, trying again:$timeoutException")
-              context.self ! message
+            processTimeoutException(message, actorRef, timeoutException)
+
           case e: Exception =>
             val errorCounter = Random.nextInt(1000)
             page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"error_$errorCounter.png")))
@@ -72,11 +70,31 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         ref ! ParametersSavedMessage()
         resetPage()
 
+      case CloseBacktesterMessage() =>
+        context.log.info("Shutting down backtester actor")
+        page.close()
+        browser.close()
+        playwright.close()
+        Behaviors.stopped
+
       case _ =>
         context.log.error("Received unknown message in BacktesterActor")
 
     this
 
+
+  private def processTimeoutException(message: Message, actorRef: ActorRef[Message], timeoutException: TimeoutError): Unit = {
+    if page.getByText("This strategy did not generate any orders throughout the testing range.").all().size() > 0 then
+      context.log.debug("Current parameters resulted in no trade.")
+      actorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
+
+    else
+      val errorCounter = Random.nextInt(1000)
+      page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_$errorCounter.png")))
+      context.log.warn(s"Timeout error id:$errorCounter when trying to backtest in the end actor, trying again:$timeoutException")
+
+      context.self ! message
+  }
 
   private def resetPage(): Unit = {
     page.close()
@@ -137,15 +155,18 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).click()
   }
 
-  private def waitForBacktestingResults(page: Page): Unit = {
+  private def waitForBacktestingResults(page: Page): Unit =
     page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).waitFor()
     page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
 
     page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
+
     val generateReportButton = page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).first()
     if generateReportButton.isEnabled then
       generateReportButton.click()
-  }
+
+    page.getByText("Net Profit").waitFor()
+
 
   private def createNewPage(): Unit =
     if browserContext == null then
@@ -177,7 +198,8 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   }
 
   private def InitialiseBrowserContext(): Unit = {
-    val chromiumBrowserType: BrowserType = Playwright.create().chromium()
+    val playwright: Playwright = Playwright.create()
+    val chromiumBrowserType: BrowserType = playwright.chromium()
     val browser: Browser = chromiumBrowserType.launch()
     
     browserContext = browser.newContext(
@@ -190,6 +212,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
 
-    browserContext.setDefaultTimeout(90000)
+    browserContext.setDefaultTimeout(300000)
   }
 }

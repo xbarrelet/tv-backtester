@@ -17,7 +17,7 @@ import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Random, Success}
 
 abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
-  implicit val timeout: Timeout = 300.seconds
+  implicit val timeout: Timeout = 1800.seconds
   def logger: Logger
 
   private val backtestersSpawner: ActorRef[Message] = context.spawn(BacktestersSpawnerActor(), "backtesters-spawner-actor")
@@ -38,8 +38,10 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
       .runWith(Sink.last)
       .onComplete {
         case Success(result) =>
+          backtestersSpawner ! CloseBacktesterMessage()
+
           if results.isEmpty then
-            logger.info("No positive result received.")
+            logger.info("No positive result received during the last optimization.")
             mainActorRef ! BacktestChartResponseMessage()
             Behaviors.stopped
 
@@ -49,18 +51,14 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
           else
             sortedResults = results.sortWith(_.netProfitsPercentage > _.netProfitsPercentage).toList
 
-          logger.info("")
-          logger.info(s"Best 50 on ${sortedResults.size} results sorted by profit factor:")
-
-          for result <- sortedResults.take(50) do
-            logger.info(s"Profit factor:${result.profitFactor} - net profit:${result.netProfitsPercentage}% - closed trades:${result.closedTradesNumber} - parameters:${result.parameters.map(_.value)}")
-          logger.info("")
+          logBestResults(sortedResults)
 
           val saveResultFuture: Future[Message] = backtestersSpawner ? (myRef => SaveParametersMessage(sortedResults.head.parameters, myRef))
           saveResultFuture.onComplete {
             case Success(_) =>
               mainActorRef ! BacktestChartResponseMessage()
               Behaviors.stopped
+
             case Failure(e) =>
               logger.error("Exception received trying to save the best parameters:" + e)
               mainActorRef ! BacktestChartResponseMessage()
@@ -74,11 +72,21 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
       }
   }
 
+  private def logBestResults(sortedResults: List[BacktestingResultMessage]): Unit = {
+    logger.info("")
+    logger.info(s"Best 50 on ${sortedResults.size} results sorted by profit factor:")
+
+    for result <- sortedResults.take(50) do
+      logger.info(s"Profit factor:${result.profitFactor} - net profit:${result.netProfitsPercentage}% - closed trades:${result.closedTradesNumber} - profitability:${result.profitabilityPercentage} - parameters:${result.parameters.map(_.value)}")
+    logger.info("")
+  }
+
   private def logResults(result: BacktestingResultMessage) = {
     if result.closedTradesNumber == 0 then
       logger.info("No positive result received for parameters: " + result.parameters.map(_.value))
     else
-      logger.info("Result received for parameters: " + result.parameters.map(_.value) + s" with details: Profit factor:${result.profitFactor} - net profit:${result.netProfitsPercentage}% - closed trades:${result.closedTradesNumber}")
+      logger.info("Result received for parameters: " + result.parameters.map(_.value) + s" with details: Profit factor:${result.profitFactor} - net profit:${result.netProfitsPercentage}% - closed trades:${result.closedTradesNumber} - profitability:${result.profitabilityPercentage}")
+
     result
   }
 }
