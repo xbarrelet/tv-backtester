@@ -21,7 +21,7 @@ object SLOptimizerActor {
 }
 
 private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractBehavior(context) {
-  implicit val timeout: Timeout = 3600.seconds
+  implicit val timeout: Timeout = 7200.seconds
   private val logger: Logger = LoggerFactory.getLogger("SLOptimizerActor")
 
 
@@ -44,6 +44,7 @@ private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractB
               logger.info("SL optimization now complete.")
               mainActorRef ! BacktestChartResponseMessage()
               Behaviors.stopped
+
             case Failure(e) =>
               logger.error("Exception received during SL optimization:" + e)
           }

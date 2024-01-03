@@ -47,7 +47,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         }
         catch
           case timeoutException: TimeoutError =>
-            processTimeoutException(message, actorRef, timeoutException)
+            processTimeoutException(message, actorRef, timeoutException, parametersToTest)
 
           case e: Exception =>
             val errorCounter = Random.nextInt(1000)
@@ -83,17 +83,12 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     this
 
 
-  private def processTimeoutException(message: Message, actorRef: ActorRef[Message], timeoutException: TimeoutError): Unit = {
-    if page.getByText("This strategy did not generate any orders throughout the testing range.").all().size() > 0 then
-      context.log.debug("Current parameters resulted in no trade.")
-      actorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
+  private def processTimeoutException(message: Message, actorRef: ActorRef[Message], timeoutException: TimeoutError, parametersToTest: List[ParametersToTest]): Unit = {
+    val errorCounter = Random.nextInt(1000)
+    page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_$errorCounter.png")))
+    context.log.warn(s"Timeout error id:$errorCounter when trying to backtest in the end actor, trying again:$timeoutException")
 
-    else
-      val errorCounter = Random.nextInt(1000)
-      page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_$errorCounter.png")))
-      context.log.warn(s"Timeout error id:$errorCounter when trying to backtest in the end actor, trying again:$timeoutException")
-
-      context.self ! message
+    context.self ! message
   }
 
   private def resetPage(): Unit = {
@@ -112,14 +107,19 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   }
 
   private def getBacktestingResults(page: Page, parametersToTest: List[ParametersToTest]): BacktestingResultMessage = {
-    val netProfitsPercentage: Double = getNumberFromResultsFields(page.locator(netProfitsPercentageValueXPath))
-    val closedTradesNumber: Int = getNumberFromResultsFields(page.locator(closedTradesNumberXPath)).toInt
-    val profitabilityPercentage: Double = getNumberFromResultsFields(page.locator(profitabilityPercentageValueXPath))
-    val profitFactor: Double = getNumberFromResultsFields(page.locator(profitFactorValueXPath))
-    val maxDrawdownPercentage: Double = getNumberFromResultsFields(page.locator(maxDrawdownPercentValueXPath))
+    if page.getByText("This strategy did not generate any orders throughout the testing range.").all().size() > 0 then
+      context.log.debug("Current parameters resulted in no trade.")
+      BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, parametersToTest)
 
-    BacktestingResultMessage(netProfitsPercentage, closedTradesNumber, profitabilityPercentage, profitFactor,
-      maxDrawdownPercentage, parametersToTest)
+    else
+      val netProfitsPercentage: Double = getNumberFromResultsFields(page.locator(netProfitsPercentageValueXPath))
+      val closedTradesNumber: Int = getNumberFromResultsFields(page.locator(closedTradesNumberXPath)).toInt
+      val profitabilityPercentage: Double = getNumberFromResultsFields(page.locator(profitabilityPercentageValueXPath))
+      val profitFactor: Double = getNumberFromResultsFields(page.locator(profitFactorValueXPath))
+      val maxDrawdownPercentage: Double = getNumberFromResultsFields(page.locator(maxDrawdownPercentValueXPath))
+
+      BacktestingResultMessage(netProfitsPercentage, closedTradesNumber, profitabilityPercentage, profitFactor,
+        maxDrawdownPercentage, parametersToTest)
   }
 
   private def getNumberFromResultsFields(locator: Locator): Double =
@@ -148,7 +148,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   }
 
   private def selectOption(page: Page, parameterToTest: ParametersToTest, locator: Locator): Unit = {
-    while page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).all().size() == 0 do
+    while page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).all().isEmpty do
       locator.click()
       Thread.sleep(1000)
 
@@ -165,7 +165,8 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     if generateReportButton.isEnabled then
       generateReportButton.click()
 
-    page.getByText("Net Profit").waitFor()
+    while page.getByText("This strategy did not generate any orders throughout the testing range.").all().isEmpty && page.getByText("Net Profit").all().isEmpty do
+      Thread.sleep(5000)
 
 
   private def createNewPage(): Unit =

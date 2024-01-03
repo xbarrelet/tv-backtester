@@ -38,8 +38,6 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
       .runWith(Sink.last)
       .onComplete {
         case Success(result) =>
-          backtestersSpawner ! CloseBacktesterMessage()
-
           if results.isEmpty then
             logger.info("No positive result received during the last optimization.")
             mainActorRef ! BacktestChartResponseMessage()
@@ -56,17 +54,21 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
           val saveResultFuture: Future[Message] = backtestersSpawner ? (myRef => SaveParametersMessage(sortedResults.head.parameters, myRef))
           saveResultFuture.onComplete {
             case Success(_) =>
+              backtestersSpawner ! CloseBacktesterMessage()
               mainActorRef ! BacktestChartResponseMessage()
               Behaviors.stopped
 
             case Failure(e) =>
               logger.error("Exception received trying to save the best parameters:" + e)
+              backtestersSpawner ! CloseBacktesterMessage()
               mainActorRef ! BacktestChartResponseMessage()
               Behaviors.stopped
           }
 
         case Failure(e) =>
-          logger.error("Exception received in RunBacktesting:" + e.printStackTrace())
+          if !e.getClass.getSimpleName.eq("NoSuchElementException") then //No result passed the filters
+            logger.error("Exception received in optimizeParameters:" + e.printStackTrace())
+
           mainActorRef ! BacktestChartResponseMessage()
           Behaviors.stopped
       }

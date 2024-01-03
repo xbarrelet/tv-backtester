@@ -22,7 +22,7 @@ object TPOptimizerActor {
 }
 
 private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractBehavior(context) {
-  implicit val timeout: Timeout = 3600.seconds
+  implicit val timeout: Timeout = 7200.seconds
   private val logger: Logger = LoggerFactory.getLogger("TPOptimizerActor")
 
 

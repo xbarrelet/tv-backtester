@@ -45,6 +45,7 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
           .onComplete {
             case Success(result) =>
               logger.info("Optimisation now complete, have a nice day :)")
+              System.exit(0)
 
             case Failure(e) =>
               logger.error("Exception received during global backtesting:" + e)
