@@ -4,6 +4,7 @@ package backtesting.specific
 import Application.{executionContext, system}
 import TVLocators.*
 import backtesting.AbstractBacktesterBehavior
+import backtesting.specific.stopLoss.SLAndTPTrailingBacktesterActor
 import backtesting.specific.takeProfit.{TPLeverageBacktesterActor, TPLongBacktesterActor, TPShortBacktesterActor}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
@@ -32,6 +33,7 @@ private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractB
         val backtesters: List[ActorRef[Message]] = List(
           context.spawn(TPShortBacktesterActor(), "tp-short-backtester"),
           context.spawn(TPLongBacktesterActor(), "tp-long-backtester"),
+          context.spawn(SLAndTPTrailingBacktesterActor(), "sl-tp-trailing-backtester"),
           context.spawn(TPLeverageBacktesterActor(), "tp-leverage-backtester")
         )
 

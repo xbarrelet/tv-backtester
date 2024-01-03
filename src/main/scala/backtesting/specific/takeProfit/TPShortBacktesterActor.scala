@@ -51,7 +51,7 @@ private class TPShortBacktesterActor(context: ActorContext[Message]) extends Abs
   private def addParametersForTPFixedPercentShort(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
-    (5 to 100).map(i => {
+    (5 to 125).map(i => {
       parametersList.addOne(List(
           ParametersToTest(takeProfitTypeSelectorXPath, "Fixed Percent", "selectOption"),
           ParametersToTest(fixedPercentTPShortXPath, (i / 10.0).toString, "fill")))

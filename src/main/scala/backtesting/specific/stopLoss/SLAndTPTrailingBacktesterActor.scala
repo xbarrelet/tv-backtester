@@ -11,13 +11,13 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
 
-object SLTrailingBacktesterActor {
+object SLAndTPTrailingBacktesterActor {
   def apply(): Behavior[Message] =
-    Behaviors.setup(context => new SLTrailingBacktesterActor(context))
+    Behaviors.setup(context => new SLAndTPTrailingBacktesterActor(context))
 }
 
-private class SLTrailingBacktesterActor(context: ActorContext[Message]) extends AbstractBacktesterBehavior(context) {
-  val logger: Logger = LoggerFactory.getLogger("SLTrailingBacktesterActor")
+private class SLAndTPTrailingBacktesterActor(context: ActorContext[Message]) extends AbstractBacktesterBehavior(context) {
+  val logger: Logger = LoggerFactory.getLogger("SLAndTPTrailingBacktesterActor")
 
 
   override def onMessage(message: Message): Behavior[Message] =
@@ -26,11 +26,11 @@ private class SLTrailingBacktesterActor(context: ActorContext[Message]) extends 
         val parametersTuplesToTest: List[List[ParametersToTest]] =
           addParametersForSLTrailing()
 
-        context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for SL trailing optimisation")
+        context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for SL and TP trailing optimization")
 
         optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
       case _ =>
-        context.log.warn("Received unknown message in SLTrailingBacktesterActor of type: " + message.getClass)
+        context.log.warn("Received unknown message in SLAndTPTrailingBacktesterActor of type: " + message.getClass)
 
     this
 

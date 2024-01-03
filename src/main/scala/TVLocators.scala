@@ -13,8 +13,10 @@ object TVLocators {
   val stopLossTypeSelectorXPath =   "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[30]/div/span/span[1]"
 
   // Trailing parameters
-  val trailingLossCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[92]/div/label/span[1]/input"
-  val trailingTPCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[99]/div/label/span[1]/input"
+//  val trailingLossCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[92]/div/label/span[1]/input"
+  val trailingLossCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[92]/div/label/span[1]/span"
+//  val trailingTPCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[99]/div/label/span[1]/input"
+  val trailingTPCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[99]/div/label/span[1]/span"
   val atrTLMultiplierXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[101]/div/span/span[1]/input"
   val whenToActivateTrailingXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[96]/div/span"
 

@@ -3,7 +3,7 @@ package backtesting.specific
 
 import Application.{executionContext, system}
 import TVLocators.*
-import backtesting.specific.stopLoss.{SLLongBacktesterActor, SLShortBacktesterActor, SLTrailingBacktesterActor}
+import backtesting.specific.stopLoss.{SLAndTPTrailingBacktesterActor, SLLongBacktesterActor, SLShortBacktesterActor}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -30,8 +30,7 @@ private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractB
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val backtesters: List[ActorRef[Message]] = List(
           context.spawn(SLShortBacktesterActor(), "sl-short-backtester"),
-          context.spawn(SLLongBacktesterActor(), "sl-long-backtester"),
-          context.spawn(SLTrailingBacktesterActor(), "sl-trailing-backtester"),
+          context.spawn(SLLongBacktesterActor(), "sl-long-backtester")
         )
 
         Source(backtesters)
