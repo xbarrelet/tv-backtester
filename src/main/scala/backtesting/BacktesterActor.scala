@@ -67,7 +67,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
           page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
           page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
 
-          save_chart(page)
+          saveChart(page)
 
           ref ! ParametersSavedMessage()
           resetPage()
@@ -112,7 +112,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     createNewPage()
   }
 
-  private def save_chart(page: Page): Unit = {
+  private def saveChart(page: Page): Unit = {
     if page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Save all charts for all symbols and intervals on your layout")).all().size() > 0 then
       page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Save all charts for all symbols and intervals on your layout")).click()
       Thread.sleep(3000)

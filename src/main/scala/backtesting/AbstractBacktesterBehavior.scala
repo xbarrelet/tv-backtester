@@ -32,7 +32,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
       })
       .map(_.asInstanceOf[BacktestingResultMessage])
       .map(result => logResults(result))
-      .filter(_.closedTradesNumber > 100)
+      .filter(_.closedTradesNumber > 50)
       .filter(_.maxDrawdownPercentage < 30)
       .filter(_.netProfitsPercentage > 5)
       .map(results.append)
@@ -42,6 +42,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
           if results.isEmpty then
             logger.info("No positive result received during the last optimization.")
             mainActorRef ! BacktestChartResponseMessage()
+            backtestersSpawner ! CloseBacktesterMessage()
             Behaviors.stopped
 
           var sortedResults: List[BacktestingResultMessage] = List[BacktestingResultMessage]()
@@ -57,8 +58,8 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
           val saveResultFuture: Future[Message] = backtestersSpawner ? (myRef => SaveParametersMessage(sortedResults.head.parameters, myRef))
           saveResultFuture.onComplete {
             case Success(_) =>
-              backtestersSpawner ! CloseBacktesterMessage()
               mainActorRef ! BacktestChartResponseMessage()
+              backtestersSpawner ! CloseBacktesterMessage()
               Behaviors.stopped
 
             case Failure(e) =>

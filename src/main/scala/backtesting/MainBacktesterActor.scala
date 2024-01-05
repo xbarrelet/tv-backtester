@@ -3,7 +3,7 @@ package backtesting
 
 import Application.{executionContext, system}
 import TVLocators.*
-import backtesting.specific.{SLOptimizerActor, TPOptimizerActor}
+import backtesting.specific.{SLOptimizerActor, StratOptimizerActor, TPOptimizerActor}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -31,12 +31,17 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
         context.log.info(s"Starting backtesting for chart $chartId")
 
         val backtesters: List[ActorRef[Message]] = List(
+          context.spawn(StratOptimizerActor(), "strat-optimizer"),
+//          context.spawn(StratOptimizerActor(), "strat-optimizer2"),
+//          context.spawn(StratOptimizerActor(), "strat-optimizer3"),
+//          context.spawn(StratOptimizerActor(), "strat-optimizer4"),
           context.spawn(SLOptimizerActor(), "sl-optimizer"),
           context.spawn(TPOptimizerActor(), "tp-optimizer"),
         )
 
         //TODO: Add DCA step, flat market, other? You can use an index of inputs from the end as it should be fixed.
         // The same strat could be good for long but bad for short. Try only short and only long as well?
+        //"In this market you want to be grid, long or out", from the 05/01/24
 
         Source(backtesters)
           .mapAsync(1)(backtesterRef => {

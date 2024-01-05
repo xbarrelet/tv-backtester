@@ -48,6 +48,16 @@ object TVLocators {
   val dynamicLeverageCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[131]/div/label"
 
 
+  //// STRATS
+  //DEAD ZONE V5
+  val sensitivityXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[226]/div/span/span[1]/input"
+  val fastEMALengthXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[228]/div/span/span[1]/input"
+  val slowEMALengthXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[230]/div/span/span[1]/input"
+  val bbChannelLengthXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[230]/div/span/span[1]/input"
+  val bbStdDevXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[234]/div/span/span[1]/input"
+  val deadMultiplerXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[236]/div/span/span[1]/input"
+
+
   // BACKTESTING RESULTS
   //  val resultsPanelXPath =           "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]"
   val netProfitsPercentageValueXPath =    "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[1]/div[2]/div[2]"

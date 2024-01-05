@@ -43,7 +43,8 @@ private class SLAndTPTrailingBacktesterActor(context: ActorContext[Message]) ext
       ParametersToTest(trailingTPCheckboxXPath, "false", "check"))
     )
 
-    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
+    List("Instant", "After Hit TP 1").map(condition => {
+//    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
       (1 to 75).map(i => {
           parametersList.addOne(List(
             ParametersToTest(trailingLossCheckboxXPath, "true", "check"),

@@ -30,7 +30,7 @@ private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractB
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val backtesters: List[ActorRef[Message]] = List(
-          context.spawn(TPShortBacktesterActor(), "tp-short-backtester"),
+//          context.spawn(TPShortBacktesterActor(), "tp-short-backtester"),
           context.spawn(TPLongBacktesterActor(), "tp-long-backtester"),
           context.spawn(SLAndTPTrailingBacktesterActor(), "sl-tp-trailing-backtester"),
           context.spawn(TPLeverageBacktesterActor(), "tp-leverage-backtester")
