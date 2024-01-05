@@ -12,6 +12,7 @@ import com.microsoft.playwright.options.{AriaRole, Cookie}
 
 import java.nio.file.Paths
 import java.util
+import scala.annotation.tailrec
 import scala.util.Random
 
 
@@ -21,9 +22,9 @@ object BacktesterActor {
 }
 
 class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
-  private val playwright: Playwright = Playwright.create()
-  private val chromiumBrowserType: BrowserType = playwright.chromium()
-  private val browser: Browser = chromiumBrowserType.launch()
+  private var playwright: Playwright = Playwright.create()
+  private var chromiumBrowserType: BrowserType = playwright.chromium()
+  private var browser: Browser = chromiumBrowserType.launch()
   private var chartId = ""
   private var browserContext: BrowserContext = null
   private var page: Page = null
@@ -58,23 +59,31 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         resetPage()
 
       case SaveParametersMessage(parametersToSave: List[ParametersToTest], ref: ActorRef[Message]) =>
-        context.log.info(s"Now saving the best parameters for chart id:$chartId. Parameters:${parametersToSave.map(_.value)}")
+        try {
+          context.log.info(s"Now saving the best parameters for chart id:$chartId. Parameters:${parametersToSave.map(_.value)}")
 
-        enterParameters(parametersToSave, page)
+          enterParameters(parametersToSave, page)
 
-        page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
-        page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
+          page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
+          page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
 
-        save_chart(page)
+          save_chart(page)
 
-        ref ! ParametersSavedMessage()
-        resetPage()
+          ref ! ParametersSavedMessage()
+          resetPage()
+        }
+        catch
+          case timeoutException: TimeoutError =>
+            context.log.error(s"Timeout error when trying to save the parameters, please save it manually:$timeoutException")
+            page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_save.png")))
+            ref ! ParametersSavedMessage()
+            resetPage()
+
 
       case CloseBacktesterMessage() =>
         context.log.info("Shutting down backtester actor")
-        page.close()
-        browser.close()
-        playwright.close()
+
+        closeEverything()
         Behaviors.stopped
 
       case _ =>
@@ -82,6 +91,13 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
     this
 
+
+  private def closeEverything(): Unit = {
+    page.close()
+    browserContext.close()
+    browser.close()
+    playwright.close()
+  }
 
   private def processTimeoutException(message: Message, actorRef: ActorRef[Message], timeoutException: TimeoutError, parametersToTest: List[ParametersToTest]): Unit = {
     val errorCounter = Random.nextInt(1000)
@@ -171,7 +187,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
   private def createNewPage(): Unit =
     if browserContext == null then
-      InitialiseBrowserContext()
+      initialiseBrowserContext()
 
     try {
       openChartAndGoToSettings()
@@ -186,23 +202,40 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     }
 
 
+  @tailrec
   private def openChartAndGoToSettings(): Unit = {
-    page = browserContext.newPage()
+    try {
+      page = browserContext.newPage()
 
-    page.navigate(s"https://www.tradingview.com/chart/${sys.env("CHART_ID")}/")
-    page.getByText("Deep Backtesting").waitFor()
+      page.navigate(s"https://www.tradingview.com/chart/${sys.env("CHART_ID")}/")
+      page.getByText("Deep Backtesting").waitFor()
 
-    page.getByRole(AriaRole.SWITCH).click()
+      page.getByRole(AriaRole.SWITCH).click()
 
-    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
-    page.getByText("Core Boilerplate Version").waitFor()
+      page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
+      page.getByText("Core Boilerplate Version").waitFor()
+    }
+    catch {
+      case e: Exception =>
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"start_page_${Random.nextInt()}.png")))
+        context.log.warn(s"Error when trying to open a new page, restarting Playwright and trying again:${e.getMessage}")
+
+        resetEverything()
+        openChartAndGoToSettings()
+    }
   }
 
-  private def InitialiseBrowserContext(): Unit = {
-    val playwright: Playwright = Playwright.create()
-    val chromiumBrowserType: BrowserType = playwright.chromium()
-    val browser: Browser = chromiumBrowserType.launch()
-    
+  private def resetEverything(): Unit = {
+    closeEverything()
+    Thread.sleep(5000)
+
+    playwright = Playwright.create()
+    chromiumBrowserType = playwright.chromium()
+    browser = chromiumBrowserType.launch()
+    initialiseBrowserContext()
+  }
+
+  private def initialiseBrowserContext(): Unit = {
     browserContext = browser.newContext(
       Browser.NewContextOptions()
         .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36")

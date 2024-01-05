@@ -24,7 +24,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
   private val results: ListBuffer[BacktestingResultMessage] = ListBuffer()
 
 
-  def optimizeParameters(parametersCombinationToTest: List[List[ParametersToTest]], mainActorRef: ActorRef[Message], chartId: String, evaluationParameter: String = "profitFactor"): Unit = {
+  def optimizeParameters(parametersCombinationToTest: List[List[ParametersToTest]], mainActorRef: ActorRef[Message], chartId: String, evaluationParameter: String = "profitability"): Unit = {
     Source(parametersCombinationToTest)
       .throttle(1, Random.between(2500, 5000).millis)
       .mapAsync(sys.env("CRAWLERS_NUMBER").toInt)(parametersToTest => {
@@ -34,6 +34,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
       .map(result => logResults(result))
       .filter(_.closedTradesNumber > 100)
       .filter(_.maxDrawdownPercentage < 30)
+      .filter(_.netProfitsPercentage > 5)
       .map(results.append)
       .runWith(Sink.last)
       .onComplete {
@@ -46,6 +47,8 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
           var sortedResults: List[BacktestingResultMessage] = List[BacktestingResultMessage]()
           if evaluationParameter.eq("profitFactor") then
             sortedResults = results.sortWith(_.profitFactor > _.profitFactor).toList
+          else if evaluationParameter.eq("profitability") then
+            sortedResults = results.sortWith(_.profitabilityPercentage > _.profitabilityPercentage).toList
           else
             sortedResults = results.sortWith(_.netProfitsPercentage > _.netProfitsPercentage).toList
 

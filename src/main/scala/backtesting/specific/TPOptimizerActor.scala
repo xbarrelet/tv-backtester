@@ -4,8 +4,7 @@ package backtesting.specific
 import Application.{executionContext, system}
 import TVLocators.*
 import backtesting.AbstractBacktesterBehavior
-import backtesting.specific.stopLoss.SLAndTPTrailingBacktesterActor
-import backtesting.specific.takeProfit.{TPLeverageBacktesterActor, TPLongBacktesterActor, TPShortBacktesterActor}
+import backtesting.specific.takeProfit.{SLAndTPTrailingBacktesterActor, TPLeverageBacktesterActor, TPLongBacktesterActor, TPShortBacktesterActor}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}

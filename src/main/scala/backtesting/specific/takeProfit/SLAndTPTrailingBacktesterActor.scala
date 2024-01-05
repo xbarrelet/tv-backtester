@@ -1,5 +1,5 @@
 package ch.xavier
-package backtesting.specific.stopLoss
+package backtesting.specific.takeProfit
 
 import TVLocators.{atrTLMultiplierXPath, trailingLossCheckboxXPath, trailingTPCheckboxXPath, whenToActivateTrailingXPath}
 import backtesting.AbstractBacktesterBehavior

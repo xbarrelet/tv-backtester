@@ -3,13 +3,14 @@ package backtesting.specific
 
 import Application.{executionContext, system}
 import TVLocators.*
-import backtesting.specific.stopLoss.{SLAndTPTrailingBacktesterActor, SLLongBacktesterActor, SLShortBacktesterActor}
+import backtesting.specific.stopLoss.{SLLongBacktesterActor, SLShortBacktesterActor}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
+import ch.xavier.backtesting.specific.takeProfit.SLAndTPTrailingBacktesterActor
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt

@@ -40,7 +40,7 @@ private class SLLongBacktesterActor(context: ActorContext[Message]) extends Abst
   private def addParametersForSLATR(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
-    (5 to 125).map(i => {
+    (5 to 150).map(i => {
       parametersList.addOne(List(
         ParametersToTest(stopLossTypeSelectorXPath, "ATR", "selectOption"),
         ParametersToTest(fixedPercentSLLongXPath, (i / 10.0).toString, "fill")))

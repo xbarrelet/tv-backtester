@@ -34,7 +34,10 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
           context.spawn(SLOptimizerActor(), "sl-optimizer"),
           context.spawn(TPOptimizerActor(), "tp-optimizer"),
         )
-        
+
+        //TODO: Add DCA step, flat market, other? You can use an index of inputs from the end as it should be fixed.
+        // The same strat could be good for long but bad for short. Try only short and only long as well?
+
         Source(backtesters)
           .mapAsync(1)(backtesterRef => {
             backtesterRef ? (myRef => BacktestSpecificPartMessage(myRef, chartId))
