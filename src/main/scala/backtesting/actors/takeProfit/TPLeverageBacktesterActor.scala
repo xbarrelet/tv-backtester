@@ -1,8 +1,8 @@
 package ch.xavier
-package backtesting.specific.takeProfit
+package backtesting.actors.takeProfit
 
-import TVLocators.*
-import backtesting.AbstractBacktesterBehavior
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -24,14 +24,14 @@ private class TPLeverageBacktesterActor(context: ActorContext[Message]) extends 
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val parametersTuplesToTest: List[List[ParametersToTest]] = addParametersForLeverage()
-          
+
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for TP leverage optimisation")
 
         optimizeParameters(parametersTuplesToTest, mainActorRef, chartId, evaluationParameter = "netProfitsPercentage")
       case _ =>
         context.log.warn("Received unknown message in TPLeverageBacktesterActor of type: " + message.getClass)
 
-      this
+    this
 
 
   private def addParametersForLeverage(): List[List[ParametersToTest]] =

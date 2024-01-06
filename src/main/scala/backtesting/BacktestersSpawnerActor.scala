@@ -16,7 +16,6 @@ import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
 
-
 object BacktestersSpawnerActor {
   def apply(): Behavior[Message] =
     Behaviors.setup(context => new BacktestersSpawnerActor(context))
@@ -28,13 +27,13 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
   private val backtestersPool: mutable.Queue[ActorRef[Message]] = instantiateBacktestersPool()
   private var actorsCounter = 0
 
-  
+
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message], chartId: String) =>
         val ref: ActorRef[Message] = backtestersPool.dequeue()
 
-        val response: Future[Message] =  ref ? (myRef => BacktestMessage(parametersToTest, myRef, chartId))
+        val response: Future[Message] = ref ? (myRef => BacktestMessage(parametersToTest, myRef, chartId))
 
         response.onComplete {
           case Success(result: Message) =>
@@ -49,7 +48,7 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
       case SaveParametersMessage(parametersToSave: List[ParametersToTest], actorRef: ActorRef[Message]) =>
         val ref: ActorRef[Message] = backtestersPool.dequeue()
 
-        val response: Future[Message] =  ref ? (myRef => message)
+        val response: Future[Message] = ref ? (myRef => SaveParametersMessage(parametersToSave, myRef))
 
         response.onComplete {
           case Success(result: Message) =>
@@ -68,7 +67,7 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
       case _ =>
         context.log.warn("Received unknown message in BacktestersSpawnerActor of type: " + message.getClass)
 
-      this
+    this
 
   private def instantiateBacktestersPool(): mutable.Queue[ActorRef[Message]] =
     val backtestersPool: mutable.Queue[ActorRef[Message]] = mutable.Queue.empty

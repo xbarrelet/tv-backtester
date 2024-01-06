@@ -1,8 +1,8 @@
 package ch.xavier
-package backtesting.specific.strats
+package backtesting.actors.strats.deadzonev5
 
-import TVLocators.*
-import backtesting.AbstractBacktesterBehavior
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -27,7 +27,7 @@ private class DeadZoneV5BBStdDeviationActor(context: ActorContext[Message]) exte
           addParametersForBBStdDeviation()
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for DeadzoneV5 BB std dev")
-        
+
         optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
       case _ =>
         context.log.warn("Received unknown message in DeadZoneV5BBStdDeviationActor of type: " + message.getClass)

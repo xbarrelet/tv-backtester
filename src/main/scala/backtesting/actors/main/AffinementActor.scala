@@ -1,17 +1,16 @@
 package ch.xavier
-package backtesting.specific
+package backtesting.actors.main
 
 import Application.{executionContext, system}
-import TVLocators.*
-import backtesting.AbstractBacktesterBehavior
-import backtesting.specific.takeProfit.{SLAndTPTrailingBacktesterActor, TPLeverageBacktesterActor, TPLongBacktesterActor, TPShortBacktesterActor}
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.affinement.{HurstExponentBacktesterActor, MasAffinementBacktesterActor, RangeFilterBacktesterActor, VWAPCrossoverBacktesterActor}
+import backtesting.actors.takeProfit.TPLeverageBacktesterActor
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
-import ch.xavier.backtesting.specific.affinement.{HurstExponentBacktesterActor, MasAffinementBacktesterActor, RangeFilterBacktesterActor, VWAPCrossoverBacktesterActor}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
@@ -48,7 +47,7 @@ private class AffinementActor(context: ActorContext[Message]) extends AbstractBe
               logger.info("Affinement now complete.")
               mainActorRef ! BacktestChartResponseMessage()
               Behaviors.stopped
-              
+
             case Failure(e) =>
               logger.error("Exception received during affinement:" + e)
           }

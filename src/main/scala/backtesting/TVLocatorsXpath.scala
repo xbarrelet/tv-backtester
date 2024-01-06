@@ -1,6 +1,7 @@
 package ch.xavier
+package backtesting
 
-object TVLocators {
+object TVLocatorsXpath {
   // MAIN PAGE
   val chartDeepBacktestingScalerXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[1]/div[1]/div[2]/div/span"
 
@@ -10,18 +11,18 @@ object TVLocators {
 
   // TP/SL
   val takeProfitTypeSelectorXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[28]/div/span"
-  val stopLossTypeSelectorXPath =   "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[30]/div/span/span[1]"
+  val stopLossTypeSelectorXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[30]/div/span/span[1]"
 
   // Trailing parameters
-//  val trailingLossCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[92]/div/label/span[1]/input"
+  //  val trailingLossCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[92]/div/label/span[1]/input"
   val trailingLossCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[92]/div/label/span[1]/span"
-//  val trailingTPCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[99]/div/label/span[1]/input"
+  //  val trailingTPCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[99]/div/label/span[1]/input"
   val trailingTPCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[99]/div/label/span[1]/span"
   val atrTLMultiplierXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[101]/div/span/span[1]/input"
   val whenToActivateTrailingXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[96]/div/span"
 
   // RR
-  val rrProfitFactorLongXPath: String =  "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[69]/div/span/span[1]/input"
+  val rrProfitFactorLongXPath: String = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[69]/div/span/span[1]/input"
   val rrProfitFactorShortXPath: String = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[71]/div/span/span[1]/input"
 
   // Fixed Percent
@@ -63,7 +64,6 @@ object TVLocators {
   val vWapCrossoverLengthXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[354]/div/span/span[1]/input"
 
 
-
   //// STRATS
   //DEAD ZONE V5
   val sensitivityXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[226]/div/span/span[1]/input"
@@ -74,15 +74,12 @@ object TVLocators {
   val deadMultiplierXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[236]/div/span/span[1]/input"
 
 
-
-
-
   // BACKTESTING RESULTS
   //  val resultsPanelXPath =           "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]"
-  val netProfitsPercentageValueXPath =    "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[1]/div[2]/div[2]"
-//  val netProfitsPercentageValueXPath =    "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[2]/div/div[1]/div[1]/div[2]/div[2]"
-  val closedTradesNumberXPath =           "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[2]/div[2]/div[1]"
+  val netProfitsPercentageValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[1]/div[2]/div[2]"
+  //  val netProfitsPercentageValueXPath =    "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[2]/div/div[1]/div[1]/div[2]/div[2]"
+  val closedTradesNumberXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[2]/div[2]/div[1]"
   val profitabilityPercentageValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[3]/div[2]/div[1]"
-  val profitFactorValueXPath =            "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[4]/div[2]/div[1]"
-  val maxDrawdownPercentValueXPath =      "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[5]/div[2]/div[2]"
+  val profitFactorValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[4]/div[2]/div[1]"
+  val maxDrawdownPercentValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[5]/div[2]/div[2]"
 }

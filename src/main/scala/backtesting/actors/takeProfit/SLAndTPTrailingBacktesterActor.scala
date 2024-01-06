@@ -1,8 +1,8 @@
 package ch.xavier
-package backtesting.specific.takeProfit
+package backtesting.actors.takeProfit
 
-import TVLocators.{atrTLMultiplierXPath, trailingLossCheckboxXPath, trailingTPCheckboxXPath, whenToActivateTrailingXPath}
-import backtesting.AbstractBacktesterBehavior
+import backtesting.TVLocatorsXpath.{atrTLMultiplierXPath, trailingLossCheckboxXPath, trailingTPCheckboxXPath, whenToActivateTrailingXPath}
+import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -44,21 +44,21 @@ private class SLAndTPTrailingBacktesterActor(context: ActorContext[Message]) ext
     )
 
     List("Instant", "After Hit TP 1").map(condition => {
-//    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
+      //    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
       (1 to 75).map(i => {
-          parametersList.addOne(List(
-            ParametersToTest(trailingLossCheckboxXPath, "true", "check"),
-            ParametersToTest(trailingTPCheckboxXPath, "false", "check"),
-            ParametersToTest(whenToActivateTrailingXPath, condition, "selectOption"),
-            ParametersToTest(atrTLMultiplierXPath, (i / 10.0).toString, "fill"))
-          )
-          parametersList.addOne(List(
-            ParametersToTest(trailingLossCheckboxXPath, "true", "check"),
-            ParametersToTest(trailingTPCheckboxXPath, "true", "check"),
-            ParametersToTest(whenToActivateTrailingXPath, condition, "selectOption"),
-            ParametersToTest(atrTLMultiplierXPath, (i / 10.0).toString, "fill"))
-          )
-        })
+        parametersList.addOne(List(
+          ParametersToTest(trailingLossCheckboxXPath, "true", "check"),
+          ParametersToTest(trailingTPCheckboxXPath, "false", "check"),
+          ParametersToTest(whenToActivateTrailingXPath, condition, "selectOption"),
+          ParametersToTest(atrTLMultiplierXPath, (i / 10.0).toString, "fill"))
+        )
+        parametersList.addOne(List(
+          ParametersToTest(trailingLossCheckboxXPath, "true", "check"),
+          ParametersToTest(trailingTPCheckboxXPath, "true", "check"),
+          ParametersToTest(whenToActivateTrailingXPath, condition, "selectOption"),
+          ParametersToTest(atrTLMultiplierXPath, (i / 10.0).toString, "fill"))
+        )
+      })
     })
 
 

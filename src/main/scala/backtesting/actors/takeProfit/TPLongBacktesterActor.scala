@@ -1,8 +1,8 @@
 package ch.xavier
-package backtesting.specific.takeProfit
+package backtesting.actors.takeProfit
 
-import TVLocators.*
-import backtesting.AbstractBacktesterBehavior
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -26,15 +26,15 @@ private class TPLongBacktesterActor(context: ActorContext[Message]) extends Abst
         val parametersTuplesToTest: List[List[ParametersToTest]] =
           addParametersForTPRRLong()
             ::: addParametersForTPFixedPercentLong()
-//            ::: addParametersForTPPipsLong()
-          
+        //            ::: addParametersForTPPipsLong()
+
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for TP Long optimisation")
 
         optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
       case _ =>
         context.log.warn("Received unknown message in TPLongBacktesterActor of type: " + message.getClass)
 
-      this
+    this
 
 
   private def addParametersForTPRRLong(): List[List[ParametersToTest]] =

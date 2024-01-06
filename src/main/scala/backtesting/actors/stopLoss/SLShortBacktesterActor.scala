@@ -1,8 +1,8 @@
 package ch.xavier
-package backtesting.specific.stopLoss
+package backtesting.actors.stopLoss
 
-import TVLocators.*
-import backtesting.AbstractBacktesterBehavior
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -24,16 +24,16 @@ private class SLShortBacktesterActor(context: ActorContext[Message]) extends Abs
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val parametersTuplesToTest: List[List[ParametersToTest]] =
-            addParametersForSLShortFixedPercent()
-//            ::: addParametersForSLShortPips()
-          
+          addParametersForSLShortFixedPercent()
+        //            ::: addParametersForSLShortPips()
+
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for SL short optimisation")
-        
+
         optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
       case _ =>
         context.log.warn("Received unknown message in SLShortBacktesterActor of type: " + message.getClass)
 
-      this
+    this
 
 
   private def addParametersForSLShortFixedPercent(): List[List[ParametersToTest]] =

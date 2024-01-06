@@ -1,8 +1,8 @@
 package ch.xavier
-package backtesting.specific.affinement
+package backtesting.actors.affinement
 
-import TVLocators.*
-import backtesting.AbstractBacktesterBehavior
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -26,9 +26,9 @@ private class VWAPCrossoverBacktesterActor(context: ActorContext[Message]) exten
         val parametersTuplesToTest: List[List[ParametersToTest]] =
           addParametersForVWAPCrossover()
 
-        context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for range filtering affinement")
+        context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for vWap crossover affinement")
 
-        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
+        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId, evaluationParameter = "profitability")
       case _ =>
         context.log.warn("Received unknown message in VWAPCrossoverBacktesterActor of type: " + message.getClass)
 
@@ -41,10 +41,10 @@ private class VWAPCrossoverBacktesterActor(context: ActorContext[Message]) exten
     parametersList.addOne(List(ParametersToTest(useVWapCrossoverCheckboxXPath, "false", "check")))
 
     (5 to 50).map(length => {
-        parametersList.addOne(List(
-          ParametersToTest(useVWapCrossoverCheckboxXPath, "true", "check"),
-          ParametersToTest(rangeFilteringPeriodXPath, length.toString, "fill"),
-        ))
+      parametersList.addOne(List(
+        ParametersToTest(useVWapCrossoverCheckboxXPath, "true", "check"),
+        ParametersToTest(rangeFilteringPeriodXPath, length.toString, "fill"),
+      ))
     })
 
     parametersList.toList

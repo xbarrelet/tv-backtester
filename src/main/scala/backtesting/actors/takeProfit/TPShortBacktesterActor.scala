@@ -1,8 +1,8 @@
 package ch.xavier
-package backtesting.specific.takeProfit
+package backtesting.actors.takeProfit
 
-import TVLocators.*
-import backtesting.AbstractBacktesterBehavior
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -23,27 +23,27 @@ private class TPShortBacktesterActor(context: ActorContext[Message]) extends Abs
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] = 
-          addParametersForTPRRShort() 
+        val parametersTuplesToTest: List[List[ParametersToTest]] =
+          addParametersForTPRRShort()
             ::: addParametersForTPFixedPercentShort()
-//            ::: addParametersForTPPipsShort()
-          
+        //            ::: addParametersForTPPipsShort()
+
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for TP Short optimisation")
 
         optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
       case _ =>
         context.log.warn("Received unknown message in TPShortBacktesterActor of type: " + message.getClass)
 
-      this
-  
+    this
+
 
   private def addParametersForTPRRShort(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
     (5 to 75).map(i => {
       parametersList.addOne(List(
-          ParametersToTest(takeProfitTypeSelectorXPath, "R:R", "selectOption"),
-          ParametersToTest(rrProfitFactorShortXPath, (i / 10.0).toString, "fill")))
+        ParametersToTest(takeProfitTypeSelectorXPath, "R:R", "selectOption"),
+        ParametersToTest(rrProfitFactorShortXPath, (i / 10.0).toString, "fill")))
     })
 
     parametersList.toList
@@ -53,8 +53,8 @@ private class TPShortBacktesterActor(context: ActorContext[Message]) extends Abs
 
     (5 to 150).map(i => {
       parametersList.addOne(List(
-          ParametersToTest(takeProfitTypeSelectorXPath, "Fixed Percent", "selectOption"),
-          ParametersToTest(fixedPercentTPShortXPath, (i / 10.0).toString, "fill")))
+        ParametersToTest(takeProfitTypeSelectorXPath, "Fixed Percent", "selectOption"),
+        ParametersToTest(fixedPercentTPShortXPath, (i / 10.0).toString, "fill")))
     })
 
     parametersList.toList

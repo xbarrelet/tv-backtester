@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting
 
-import TVLocators.*
+import backtesting.TVLocatorsXpath.*
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -40,7 +40,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         else
           resetPage()
 
-        //        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
+        context.log.debug(s"Backtesting parameters:${parametersToTest.map(_.value)}")
 
         try {
           enterParameters(parametersToTest, page)
@@ -82,7 +82,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
 
       case CloseBacktesterMessage() =>
-        context.log.info("Shutting down backtester actor")
+        context.log.debug("Shutting down backtester actor")
 
         closeEverything()
         Behaviors.stopped

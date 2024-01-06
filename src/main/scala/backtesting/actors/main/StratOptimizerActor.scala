@@ -1,9 +1,10 @@
 package ch.xavier
-package backtesting.specific
+package backtesting.actors.main
 
 import Application.{executionContext, system}
-import TVLocators.*
-import backtesting.specific.strats.*
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.strats.*
+import backtesting.actors.strats.deadzonev5.*
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -13,7 +14,7 @@ import akka.util.Timeout
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Random, Success}
+import scala.util.{Failure, Success}
 
 object StratOptimizerActor {
   def apply(): Behavior[Message] =
@@ -44,7 +45,7 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
         )
 
         Source(backtesters)
-//        Source(Random.shuffle(backtesters))
+          //        Source(Random.shuffle(backtesters))
           .mapAsync(1)(backtesterRef => {
             backtesterRef ? (myRef => BacktestSpecificPartMessage(myRef, chartId))
           })
@@ -57,7 +58,7 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
                 mainActorRef ! BacktestChartResponseMessage()
                 Behaviors.stopped
               else
-                logger.info("Better result found: " + result.profitabilityPercentage)
+                logger.info(s"Better result found:${result.profitabilityPercentage}, old:$bestProfitabilityPercentageResult")
                 bestProfitabilityPercentageResult = result.profitabilityPercentage
                 actorsCounter += 1
 

@@ -1,7 +1,8 @@
 package ch.xavier
-package backtesting
+package backtesting.actors
 
 import Application.{executionContext, system}
+import backtesting.BacktestersSpawnerActor
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.ActorRef
@@ -18,11 +19,10 @@ import scala.util.{Failure, Random, Success}
 
 abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   implicit val timeout: Timeout = 1800.seconds
-  def logger: Logger
-
   private val backtestersSpawner: ActorRef[Message] = context.spawn(BacktestersSpawnerActor(), "backtesters-spawner-actor")
   private val results: ListBuffer[BacktestingResultMessage] = ListBuffer()
 
+  def logger: Logger
 
   def optimizeParameters(parametersCombinationToTest: List[List[ParametersToTest]], mainActorRef: ActorRef[Message], chartId: String, evaluationParameter: String = "profitability"): Unit = {
     Source(parametersCombinationToTest)
@@ -35,7 +35,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
       .filter(_.closedTradesNumber > 50)
       .filter(_.maxDrawdownPercentage < 30)
       .filter(_.netProfitsPercentage > 5)
-      .filter(_.profitFactor > 1)
+      //      .filter(_.profitFactor > 1)
       .map(results.append)
       .runWith(Sink.last)
       .onComplete {
@@ -45,7 +45,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
             mainActorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
             backtestersSpawner ! CloseBacktesterMessage()
             Behaviors.stopped
-          
+
           var sortedResults: List[BacktestingResultMessage] = List[BacktestingResultMessage]()
           if evaluationParameter.eq("profitFactor") then
             sortedResults = results.sortBy(p => (p.profitFactor, p.profitabilityPercentage)).reverse.toList
@@ -71,7 +71,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
           }
 
         case Failure(e) =>
-          if !e.getClass.eq(java.util.NoSuchElementException()) then //No result passed the filters
+          if !e.isInstanceOf[java.util.NoSuchElementException] then
             logger.error("Exception received in optimizeParameters:" + e.printStackTrace())
 
           mainActorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)

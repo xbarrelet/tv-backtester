@@ -2,8 +2,8 @@ package ch.xavier
 package backtesting
 
 import Application.{executionContext, system}
-import TVLocators.*
-import backtesting.specific.{AffinementActor, SLOptimizerActor, StratOptimizerActor, TPOptimizerActor}
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.main.{AffinementActor, SLOptimizerActor, StratOptimizerActor, TPOptimizerActor}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -57,5 +57,5 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
       case _ =>
         context.log.warn("Received unknown message in MainBacktesterActor of type: " + message.getClass)
 
-      this
+    this
 }

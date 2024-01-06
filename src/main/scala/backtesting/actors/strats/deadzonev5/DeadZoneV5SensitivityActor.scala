@@ -1,8 +1,8 @@
 package ch.xavier
-package backtesting.specific.strats
+package backtesting.actors.strats.deadzonev5
 
-import TVLocators.*
-import backtesting.AbstractBacktesterBehavior
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -11,23 +11,23 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
 
-object DeadZoneV5SlowEMAActor {
+object DeadZoneV5SensitivityActor {
   def apply(): Behavior[Message] =
-    Behaviors.setup(context => new DeadZoneV5SlowEMAActor(context))
+    Behaviors.setup(context => new DeadZoneV5SensitivityActor(context))
 }
 
-private class DeadZoneV5SlowEMAActor(context: ActorContext[Message]) extends AbstractBacktesterBehavior(context) {
-  val logger: Logger = LoggerFactory.getLogger("DeadZoneV5SlowEMAActor")
+private class DeadZoneV5SensitivityActor(context: ActorContext[Message]) extends AbstractBacktesterBehavior(context) {
+  val logger: Logger = LoggerFactory.getLogger("DeadZoneV5SensitivityActor")
 
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val parametersTuplesToTest: List[List[ParametersToTest]] =
-          addParametersForSlowEMA()
+          addParametersForSensitivity()
 
-        context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for DeadZoneV5 slow EMA")
-        
+        context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for DeadzoneV5 sensitivity")
+
         optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
       case _ =>
         context.log.warn("Received unknown message in DeadZoneV5SensitivityActor of type: " + message.getClass)
@@ -35,16 +35,16 @@ private class DeadZoneV5SlowEMAActor(context: ActorContext[Message]) extends Abs
     this
 
 
-  private def addParametersForSlowEMA(): List[List[ParametersToTest]] =
+  private def addParametersForSensitivity(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
-    (50 to 300).map(i => {
-      if i % 5 == 0 then
+    (1 to 600).map(i => {
+      if i % 10 == 0 then
         parametersList.addOne(List(
-          ParametersToTest(slowEMALengthXPath, i.toString, "fill")
+          ParametersToTest(sensitivityXPath, i.toString, "fill")
         ))
     })
-    
+
     parametersList.toList
 }
   

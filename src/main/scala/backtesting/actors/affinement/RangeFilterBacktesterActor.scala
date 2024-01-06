@@ -1,8 +1,8 @@
 package ch.xavier
-package backtesting.specific.affinement
+package backtesting.actors.affinement
 
-import TVLocators.*
-import backtesting.AbstractBacktesterBehavior
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -28,7 +28,7 @@ private class RangeFilterBacktesterActor(context: ActorContext[Message]) extends
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for range filtering affinement")
 
-        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
+        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId, evaluationParameter = "profitability")
       case _ =>
         context.log.warn("Received unknown message in RangeFilterBacktesterActor of type: " + message.getClass)
 

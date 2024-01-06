@@ -1,8 +1,8 @@
 package ch.xavier
-package backtesting.specific.affinement
+package backtesting.actors.affinement
 
-import TVLocators.*
-import backtesting.AbstractBacktesterBehavior
+import backtesting.TVLocatorsXpath.*
+import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -28,7 +28,7 @@ private class HurstExponentBacktesterActor(context: ActorContext[Message]) exten
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for Hurst exponent affinement")
 
-        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
+        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId, evaluationParameter = "profitability")
       case _ =>
         context.log.warn("Received unknown message in HurstExponentBacktesterActor of type: " + message.getClass)
 
