@@ -41,7 +41,7 @@ private class DeadZoneV5DeadzoneActor(context: ActorContext[Message]) extends Ab
     (1 to 150).map(i => {
       if i % 2 == 0 then
         parametersList.addOne(List(
-          ParametersToTest(deadMultiplerXPath, (i / 10.0).toString, "fill")
+          ParametersToTest(deadMultiplierXPath, (i / 10.0).toString, "fill")
         ))
     })
 

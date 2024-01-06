@@ -35,6 +35,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
       .filter(_.closedTradesNumber > 50)
       .filter(_.maxDrawdownPercentage < 30)
       .filter(_.netProfitsPercentage > 5)
+      .filter(_.profitFactor > 1)
       .map(results.append)
       .runWith(Sink.last)
       .onComplete {
@@ -44,7 +45,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
             mainActorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
             backtestersSpawner ! CloseBacktesterMessage()
             Behaviors.stopped
-
+          
           var sortedResults: List[BacktestingResultMessage] = List[BacktestingResultMessage]()
           if evaluationParameter.eq("profitFactor") then
             sortedResults = results.sortBy(p => (p.profitFactor, p.profitabilityPercentage)).reverse.toList

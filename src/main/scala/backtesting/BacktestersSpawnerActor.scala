@@ -53,13 +53,12 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
 
         response.onComplete {
           case Success(result: Message) =>
-            actorRef ! ParametersSavedMessage()
             backtestersPool.enqueue(ref)
+            actorRef ! ParametersSavedMessage()
           case Failure(ex) =>
             logger.error(s"Problem encountered in SpawnerActor when saving the parameter, sending new message:${ex.getMessage}")
-            ref ! message
-            actorRef ! ParametersSavedMessage()
             backtestersPool.enqueue(ref)
+            actorRef ! ParametersSavedMessage()
         }
 
       case CloseBacktesterMessage() =>

@@ -28,6 +28,7 @@ bin/
 
 # intellij idea
 *.log
+logs/*
 *.iml
 *.ipr
 *.iws

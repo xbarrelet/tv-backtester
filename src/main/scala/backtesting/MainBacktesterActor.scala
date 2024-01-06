@@ -3,7 +3,7 @@ package backtesting
 
 import Application.{executionContext, system}
 import TVLocators.*
-import backtesting.specific.{SLOptimizerActor, StratOptimizerActor, TPOptimizerActor}
+import backtesting.specific.{AffinementActor, SLOptimizerActor, StratOptimizerActor, TPOptimizerActor}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -34,10 +34,11 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
           context.spawn(StratOptimizerActor(), "strat-optimizer"),
           context.spawn(SLOptimizerActor(), "sl-optimizer"),
           context.spawn(TPOptimizerActor(), "tp-optimizer"),
+          context.spawn(AffinementActor(), "affinement-actor"),
         )
 
-        //TODO: Add DCA step, flat market, other? You can use an index of inputs from the end as it should be fixed.
-        //You'll need to use multiple TP to optimize profits in the future.
+        //TODO: Add flat market, volume, other?
+        //You'll need to use multiple TP to optimize profits in the future? Before the trailing actor
 
         Source(backtesters)
           .mapAsync(1)(backtesterRef => {

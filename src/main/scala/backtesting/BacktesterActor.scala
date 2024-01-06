@@ -34,11 +34,13 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     message match
       case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message], chartIdFromMessage: String) =>
         chartId = chartIdFromMessage
-        
+
         if page == null then
           createNewPage()
+        else
+          resetPage()
 
-//        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
+        //        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
 
         try {
           enterParameters(parametersToTest, page)
@@ -56,9 +58,10 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
             context.log.error(s"Error with id $errorCounter when trying to backtest in the end actor, please check the screenshot to get an idea of what is happening:$e")
             context.self ! message
 
-        resetPage()
 
       case SaveParametersMessage(parametersToSave: List[ParametersToTest], ref: ActorRef[Message]) =>
+        resetPage()
+
         try {
           context.log.info(s"Now saving the best parameters for chart id:$chartId. Parameters:${parametersToSave.map(_.value)}")
 
@@ -70,14 +73,12 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
           saveChart(page)
 
           ref ! ParametersSavedMessage()
-          resetPage()
         }
         catch
           case timeoutException: TimeoutError =>
             context.log.error(s"Timeout error when trying to save the parameters, please save it manually:$timeoutException")
             page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_save.png")))
             ref ! ParametersSavedMessage()
-            resetPage()
 
 
       case CloseBacktesterMessage() =>
@@ -164,11 +165,11 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   }
 
   private def selectOption(page: Page, parameterToTest: ParametersToTest, locator: Locator): Unit = {
-    while page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).all().isEmpty do
+    while page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).all().isEmpty do
       locator.click()
       Thread.sleep(1000)
 
-    page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value)).click()
+    page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
   }
 
   private def waitForBacktestingResults(page: Page): Unit =

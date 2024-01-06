@@ -43,9 +43,25 @@ object TVLocators {
   // ATR
   val atrMultiplierXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[81]/div/span/span[1]/input"
 
-  // Leverage
+
+  // AFFINEMENT
+  val maAffinementSelectXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[209]/div/span"
+
+  val useHurstExponentCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[278]/div/label/span[1]/span"
+  val hurstTypeSelectXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[282]/div/span"
+  val hurstExponentLengthXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[280]/div/span/span[1]/input"
+  val hurstExponentMTFXCheckboxPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[283]/span[1]/div/div/label/span[1]/span"
+
   val leverageAmountXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[128]/div/span/span[1]/input"
   val dynamicLeverageCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[131]/div/label"
+
+  val useRangeFilteringCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[256]/div/label/span[1]/span"
+  val rangeFilteringPeriodXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[257]/span[1]/div[2]/div/span/span[1]/input"
+  val rangeFilteringMultiplierXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[257]/span[2]/div[2]/div/span/span[1]/input"
+
+  val useVWapCrossoverCheckboxXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[348]/div/label/span[1]/span"
+  val vWapCrossoverLengthXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[354]/div/span/span[1]/input"
+
 
 
   //// STRATS
@@ -55,7 +71,10 @@ object TVLocators {
   val slowEMALengthXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[230]/div/span/span[1]/input"
   val bbChannelLengthXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[230]/div/span/span[1]/input"
   val bbStdDevXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[234]/div/span/span[1]/input"
-  val deadMultiplerXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[236]/div/span/span[1]/input"
+  val deadMultiplierXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[236]/div/span/span[1]/input"
+
+
+
 
 
   // BACKTESTING RESULTS
