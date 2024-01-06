@@ -21,7 +21,7 @@ object MainBacktesterActor {
 }
 
 class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
-  implicit val timeout: Timeout = 7200.seconds
+  implicit val timeout: Timeout = 10800.seconds
   private val logger: Logger = LoggerFactory.getLogger("MainBacktesterActor")
 
   override def onMessage(message: Message): Behavior[Message] =
@@ -32,16 +32,12 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
 
         val backtesters: List[ActorRef[Message]] = List(
           context.spawn(StratOptimizerActor(), "strat-optimizer"),
-//          context.spawn(StratOptimizerActor(), "strat-optimizer2"),
-//          context.spawn(StratOptimizerActor(), "strat-optimizer3"),
-//          context.spawn(StratOptimizerActor(), "strat-optimizer4"),
           context.spawn(SLOptimizerActor(), "sl-optimizer"),
           context.spawn(TPOptimizerActor(), "tp-optimizer"),
         )
 
         //TODO: Add DCA step, flat market, other? You can use an index of inputs from the end as it should be fixed.
-        // The same strat could be good for long but bad for short. Try only short and only long as well?
-        //"In this market you want to be grid, long or out", from the 05/01/24
+        //You'll need to use multiple TP to optimize profits in the future.
 
         Source(backtesters)
           .mapAsync(1)(backtesterRef => {

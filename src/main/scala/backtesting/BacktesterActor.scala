@@ -38,7 +38,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         if page == null then
           createNewPage()
 
-        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
+//        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
 
         try {
           enterParameters(parametersToTest, page)

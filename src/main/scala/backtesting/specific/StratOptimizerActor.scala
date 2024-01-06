@@ -13,7 +13,7 @@ import akka.util.Timeout
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Random, Success}
 
 object StratOptimizerActor {
   def apply(): Behavior[Message] =
@@ -24,32 +24,51 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
   implicit val timeout: Timeout = 7200.seconds
   private val logger: Logger = LoggerFactory.getLogger("StratOptimizerActor")
 
+  private var mainActorRef: ActorRef[Message] = _
+  private var bestProfitabilityPercentageResult: Double = -1
+  private var actorsCounter = 1
+
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
+      case BacktestSpecificPartMessage(mainActorRefFromMessage: ActorRef[Message], chartId: String) =>
+        mainActorRef = mainActorRefFromMessage
+
         val backtesters: List[ActorRef[Message]] = List(
-          context.spawn(DeadZoneV5SensitivityActor(), "dead-zone-v5-sensitivity-backtester"),
-          context.spawn(DeadZoneV5FastEMAActor(), "dead-zone-v5-fast-ema-backtester"),
-          context.spawn(DeadZoneV5SlowEMAActor(), "dead-zone-v5-slow-ema-backtester"),
-          context.spawn(DeadZoneV5BBChannelActor(), "dead-zone-v5-bb-channel-backtester"),
-          context.spawn(DeadZoneV5BBStdDeviationActor(), "dead-zone-v5-bb-std-dev-backtester"),
-          context.spawn(DeadZoneV5DeadzoneActor(), "dead-zone-v5-deadzone-backtester")
+          context.spawn(DeadZoneV5SensitivityActor(), s"dead-zone-v5-sensitivity-backtester-$actorsCounter"),
+          context.spawn(DeadZoneV5FastEMAActor(), s"dead-zone-v5-fast-ema-backtester-$actorsCounter"),
+          context.spawn(DeadZoneV5SlowEMAActor(), s"dead-zone-v5-slow-ema-backtester-$actorsCounter"),
+          context.spawn(DeadZoneV5BBChannelActor(), s"dead-zone-v5-bb-channel-backtester-$actorsCounter"),
+          context.spawn(DeadZoneV5BBStdDeviationActor(), s"dead-zone-v5-bb-std-dev-backtester-$actorsCounter"),
+          context.spawn(DeadZoneV5DeadzoneActor(), s"dead-zone-v5-deadzone-backtester-$actorsCounter")
         )
 
         Source(backtesters)
+//        Source(Random.shuffle(backtesters))
           .mapAsync(1)(backtesterRef => {
             backtesterRef ? (myRef => BacktestSpecificPartMessage(myRef, chartId))
           })
+          .map(_.asInstanceOf[BacktestingResultMessage])
           .runWith(Sink.last)
           .onComplete {
             case Success(result) =>
-              logger.info("Strat optimization now complete.")
-              mainActorRef ! BacktestChartResponseMessage()
-              Behaviors.stopped
+              if bestProfitabilityPercentageResult >= result.profitabilityPercentage then
+                logger.info("No better result found, finishing main strat optimization with profitability: " + result.profitabilityPercentage)
+                mainActorRef ! BacktestChartResponseMessage()
+                Behaviors.stopped
+              else
+                logger.info("Better result found: " + result.profitabilityPercentage)
+                bestProfitabilityPercentageResult = result.profitabilityPercentage
+                actorsCounter += 1
+
+                logger.info("Continuing main strat optimization")
+                context.self ! BacktestSpecificPartMessage(mainActorRef, chartId)
+                this
 
             case Failure(e) =>
-              logger.error("Exception received during Strat optimization:" + e)
+              logger.error("Exception received during Strat optimization, aborting:" + e)
+              mainActorRef ! BacktestChartResponseMessage()
+              Behaviors.stopped
           }
 
       case _ =>

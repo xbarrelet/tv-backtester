@@ -30,7 +30,7 @@ private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractB
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
         val backtesters: List[ActorRef[Message]] = List(
-//          context.spawn(SLShortBacktesterActor(), "sl-short-backtester"),
+          context.spawn(SLShortBacktesterActor(), "sl-short-backtester"),
           context.spawn(SLLongBacktesterActor(), "sl-long-backtester")
         )
 

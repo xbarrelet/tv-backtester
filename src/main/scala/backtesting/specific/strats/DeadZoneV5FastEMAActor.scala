@@ -39,7 +39,7 @@ private class DeadZoneV5FastEMAActor(context: ActorContext[Message]) extends Abs
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
     (1 to 80).map(i => {
-      if i % 5 == 0 then
+      if i % 2 == 0 then
         parametersList.addOne(List(
           ParametersToTest(fastEMALengthXPath, i.toString, "fill")
         ))

@@ -38,10 +38,11 @@ private class DeadZoneV5DeadzoneActor(context: ActorContext[Message]) extends Ab
   private def addParametersForDeadzone(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
-    (1 to 100).map(i => {
-      parametersList.addOne(List(
-        ParametersToTest(deadMultiplerXPath, (i / 10.0).toString, "fill")
-      ))
+    (1 to 150).map(i => {
+      if i % 2 == 0 then
+        parametersList.addOne(List(
+          ParametersToTest(deadMultiplerXPath, (i / 10.0).toString, "fill")
+        ))
     })
 
     parametersList.toList

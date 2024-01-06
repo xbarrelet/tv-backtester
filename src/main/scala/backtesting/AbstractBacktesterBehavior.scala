@@ -41,15 +41,15 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
         case Success(result) =>
           if results.isEmpty then
             logger.info("No positive result received during the last optimization.")
-            mainActorRef ! BacktestChartResponseMessage()
+            mainActorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
             backtestersSpawner ! CloseBacktesterMessage()
             Behaviors.stopped
 
           var sortedResults: List[BacktestingResultMessage] = List[BacktestingResultMessage]()
           if evaluationParameter.eq("profitFactor") then
-            sortedResults = results.sortWith(_.profitFactor > _.profitFactor).toList
+            sortedResults = results.sortBy(p => (p.profitFactor, p.profitabilityPercentage)).reverse.toList
           else if evaluationParameter.eq("profitability") then
-            sortedResults = results.sortWith(_.profitabilityPercentage > _.profitabilityPercentage).toList
+            sortedResults = results.sortBy(p => (p.profitabilityPercentage, p.profitFactor)).reverse.toList
           else
             sortedResults = results.sortWith(_.netProfitsPercentage > _.netProfitsPercentage).toList
 
@@ -58,29 +58,30 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
           val saveResultFuture: Future[Message] = backtestersSpawner ? (myRef => SaveParametersMessage(sortedResults.head.parameters, myRef))
           saveResultFuture.onComplete {
             case Success(_) =>
-              mainActorRef ! BacktestChartResponseMessage()
+              mainActorRef ! sortedResults.head
               backtestersSpawner ! CloseBacktesterMessage()
               Behaviors.stopped
 
             case Failure(e) =>
               logger.error("Exception received trying to save the best parameters:" + e)
+              mainActorRef ! sortedResults.head
               backtestersSpawner ! CloseBacktesterMessage()
-              mainActorRef ! BacktestChartResponseMessage()
               Behaviors.stopped
           }
 
         case Failure(e) =>
-          if !e.getClass.getSimpleName.eq("NoSuchElementException") then //No result passed the filters
+          if !e.getClass.eq(java.util.NoSuchElementException()) then //No result passed the filters
             logger.error("Exception received in optimizeParameters:" + e.printStackTrace())
 
-          mainActorRef ! BacktestChartResponseMessage()
+          mainActorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
+          backtestersSpawner ! CloseBacktesterMessage()
           Behaviors.stopped
       }
   }
 
   private def logBestResults(sortedResults: List[BacktestingResultMessage]): Unit = {
     logger.info("")
-    logger.info(s"Best 50 on ${sortedResults.size} results sorted by profit factor:")
+    logger.info(s"Best ${Math.min(sortedResults.size, 50)} on ${sortedResults.size} results sorted by % of profitable trades:")
 
     for result <- sortedResults.take(50) do
       logger.info(s"Profit factor:${result.profitFactor} - net profit:${result.netProfitsPercentage}% - closed trades:${result.closedTradesNumber} - profitability:${result.profitabilityPercentage} - parameters:${result.parameters.map(_.value)}")
