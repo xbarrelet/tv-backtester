@@ -1,4 +1,5 @@
 package ch.xavier
+package backtesting
 
 import backtesting.parameters.ParametersToTest
 

@@ -37,8 +37,11 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
           context.spawn(AffinementActor(), "affinement-actor"),
         )
 
-        //TODO: Add flat market, volume, other?
-        //You'll need to use multiple TP to optimize profits in the future? Before the trailing actor
+        //TODO: Make a new main strat optimizer that tries every combination of the main ones but with big gaps,
+        // then you affine using sequential optimizations
+
+        //TODO: Add flat market (good with multiple years), volume, other?
+        //TODO: use multiple TP to optimize profits Before the trailing actor
 
         Source(backtesters)
           .mapAsync(1)(backtesterRef => {

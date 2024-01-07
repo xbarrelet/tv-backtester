@@ -7,6 +7,7 @@ import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
+import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -38,8 +39,10 @@ private class HurstExponentBacktesterActor(context: ActorContext[Message]) exten
   private def addParametersForHurstExponent(): List[List[ParametersToTest]] =
     val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
 
-    parametersList.addOne(List(ParametersToTest(useHurstExponentCheckboxXPath, "false", "check")))
-    parametersList.addOne(List(ParametersToTest(hurstTypeSelectXPath, "Trending Market", "selectOption")))
+    parametersList.addOne(List(
+      ParametersToTest(useHurstExponentCheckboxXPath, "false", "check"),
+      ParametersToTest(hurstTypeSelectXPath, "Trending Market", "selectOption")
+    ))
 
     (5 to 150).map(i => {
       parametersList.addOne(List(

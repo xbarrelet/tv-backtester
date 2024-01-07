@@ -2,7 +2,7 @@ package ch.xavier
 package backtesting.actors
 
 import Application.{executionContext, system}
-import backtesting.BacktestersSpawnerActor
+import backtesting.{BacktestMessage, BacktestersSpawnerActor, BacktestingResultMessage, CloseBacktesterMessage, Message, SaveParametersMessage}
 import backtesting.parameters.ParametersToTest
 
 import akka.actor.typed.ActorRef

@@ -44,6 +44,11 @@ object TVLocatorsXpath {
   // ATR
   val atrMultiplierXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[81]/div/span/span[1]/input"
 
+  // Multi profit
+  val useMultiProfitCheckboxXpath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[198]/div/label/span[1]/span"
+  val useTP1CheckboxXpath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[199]/span[1]/div/div/label/span[1]/span"
+  val useTP2CheckboxXpath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[200]/span[1]/div/div/label/span[1]/span"
+
 
   // AFFINEMENT
   val maAffinementSelectXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[209]/div/span"

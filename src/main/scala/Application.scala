@@ -1,6 +1,6 @@
 package ch.xavier
 
-import backtesting.MainBacktesterActor
+import backtesting.{MainBacktesterActor, Message, StartBacktesting}
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}

@@ -11,6 +11,7 @@ import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
+import ch.xavier.backtesting.{BacktestChartResponseMessage, BacktestSpecificPartMessage, BacktestingResultMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
