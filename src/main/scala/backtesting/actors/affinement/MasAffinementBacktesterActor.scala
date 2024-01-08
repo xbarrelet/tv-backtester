@@ -1,13 +1,13 @@
 package ch.xavier
 package backtesting.actors.affinement
 
-import backtesting.TVLocatorsXpath.*
+import backtesting.TVLocators.MA_TYPE
 import backtesting.actors.AbstractBacktesterBehavior
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
+import backtesting.{BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -24,7 +24,7 @@ private class MasAffinementBacktesterActor(context: ActorContext[Message]) exten
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] =
+        val parametersTuplesToTest: List[List[StrategyParameter]] =
           addParametersForFixedMAsOptions()
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for MAs affinement")
@@ -36,8 +36,8 @@ private class MasAffinementBacktesterActor(context: ActorContext[Message]) exten
     this
 
 
-  private def addParametersForFixedMAsOptions(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForFixedMAsOptions(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
     List(
       "Off",
@@ -49,7 +49,7 @@ private class MasAffinementBacktesterActor(context: ActorContext[Message]) exten
       "3 MA (Cross)"
     ).map(masOption => {
       parametersList.addOne(List(
-        ParametersToTest(maAffinementSelectXPath, masOption, "selectOption")
+        StrategyParameter(MA_TYPE, masOption)
       ))
     })
     parametersList.toList

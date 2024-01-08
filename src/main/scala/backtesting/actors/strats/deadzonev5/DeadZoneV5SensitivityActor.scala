@@ -1,13 +1,13 @@
 package ch.xavier
 package backtesting.actors.strats.deadzonev5
 
-import backtesting.TVLocatorsXpath.*
+import backtesting.TVLocators.DEADZONE_SENSITIVITY
 import backtesting.actors.AbstractBacktesterBehavior
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
+import backtesting.{BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -24,7 +24,7 @@ private class DeadZoneV5SensitivityActor(context: ActorContext[Message]) extends
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] =
+        val parametersTuplesToTest: List[List[StrategyParameter]] =
           addParametersForSensitivity()
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for DeadzoneV5 sensitivity")
@@ -36,14 +36,13 @@ private class DeadZoneV5SensitivityActor(context: ActorContext[Message]) extends
     this
 
 
-  private def addParametersForSensitivity(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForSensitivity(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (1 to 600).map(i => {
-      if i % 10 == 0 then
-        parametersList.addOne(List(
-          ParametersToTest(sensitivityXPath, i.toString, "fill")
-        ))
+    (0 to 600 by 10).map(i => {
+      parametersList.addOne(List(
+        StrategyParameter(DEADZONE_SENSITIVITY, i.toString)
+      ))
     })
 
     parametersList.toList

@@ -1,13 +1,13 @@
 package ch.xavier
 package backtesting.actors.strats.deadzonev5
 
-import backtesting.TVLocatorsXpath.*
+import backtesting.TVLocators.DEADZONE_BB_STDEV_MULTIPLIER
 import backtesting.actors.AbstractBacktesterBehavior
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
+import backtesting.{BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -24,7 +24,7 @@ private class DeadZoneV5BBStdDeviationActor(context: ActorContext[Message]) exte
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] =
+        val parametersTuplesToTest: List[List[StrategyParameter]] =
           addParametersForBBStdDeviation()
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for DeadzoneV5 BB std dev")
@@ -36,12 +36,12 @@ private class DeadZoneV5BBStdDeviationActor(context: ActorContext[Message]) exte
     this
 
 
-  private def addParametersForBBStdDeviation(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForBBStdDeviation(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
     (1 to 100).map(i => {
       parametersList.addOne(List(
-        ParametersToTest(bbStdDevXPath, (i / 10.0).toString, "fill")
+        StrategyParameter(DEADZONE_BB_STDEV_MULTIPLIER, (i / 10.0).toString)
       ))
     })
 

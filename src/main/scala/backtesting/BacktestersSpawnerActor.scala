@@ -2,7 +2,7 @@ package ch.xavier
 package backtesting
 
 import Application.{executionContext, system}
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -30,7 +30,7 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message], chartId: String) =>
+      case BacktestMessage(parametersToTest: List[StrategyParameter], actorRef: ActorRef[Message], chartId: String) =>
         val ref: ActorRef[Message] = backtestersPool.dequeue()
 
         val response: Future[Message] = ref ? (myRef => BacktestMessage(parametersToTest, myRef, chartId))
@@ -45,7 +45,7 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
             backtestersPool.enqueue(ref)
         }
 
-      case SaveParametersMessage(parametersToSave: List[ParametersToTest], actorRef: ActorRef[Message]) =>
+      case SaveParametersMessage(parametersToSave: List[StrategyParameter], actorRef: ActorRef[Message]) =>
         val ref: ActorRef[Message] = backtestersPool.dequeue()
 
         val response: Future[Message] = ref ? (myRef => SaveParametersMessage(parametersToSave, myRef))

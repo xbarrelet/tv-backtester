@@ -1,13 +1,13 @@
 package ch.xavier
 package backtesting.actors.strats.deadzonev5
 
-import backtesting.TVLocatorsXpath.*
+import backtesting.TVLocators.DEADZONE_BB_CHANNEL_LENGTH
 import backtesting.actors.AbstractBacktesterBehavior
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
+import backtesting.{BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -24,7 +24,7 @@ private class DeadZoneV5BBChannelActor(context: ActorContext[Message]) extends A
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] =
+        val parametersTuplesToTest: List[List[StrategyParameter]] =
           addParametersForBBChannelLength()
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for DeadzoneV5 BB channel length")
@@ -36,14 +36,13 @@ private class DeadZoneV5BBChannelActor(context: ActorContext[Message]) extends A
     this
 
 
-  private def addParametersForBBChannelLength(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForBBChannelLength(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (6 to 40).map(i => {
-      if i % 2 == 0 then
-        parametersList.addOne(List(
-          ParametersToTest(bbChannelLengthXPath, i.toString, "fill")
-        ))
+    (6 to 40 by 2).map(i => {
+      parametersList.addOne(List(
+        StrategyParameter(DEADZONE_BB_CHANNEL_LENGTH, i.toString)
+      ))
     })
 
     parametersList.toList

@@ -1,13 +1,13 @@
 package ch.xavier
 package backtesting.actors.takeProfit
 
-import backtesting.TVLocatorsXpath.*
+import backtesting.TVLocators.{TP_SHORT_FIXED_PERCENTS, TP_SHORT_RR, TP_TYPE}
 import backtesting.actors.AbstractBacktesterBehavior
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
+import backtesting.{BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -24,7 +24,7 @@ private class TPShortBacktesterActor(context: ActorContext[Message]) extends Abs
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] =
+        val parametersTuplesToTest: List[List[StrategyParameter]] =
           addParametersForTPRRShort()
             ::: addParametersForTPFixedPercentShort()
         //            ::: addParametersForTPPipsShort()
@@ -38,38 +38,38 @@ private class TPShortBacktesterActor(context: ActorContext[Message]) extends Abs
     this
 
 
-  private def addParametersForTPRRShort(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForTPRRShort(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
     (5 to 75).map(i => {
       parametersList.addOne(List(
-        ParametersToTest(takeProfitTypeSelectorXPath, "R:R", "selectOption"),
-        ParametersToTest(rrProfitFactorShortXPath, (i / 10.0).toString, "fill")))
+        StrategyParameter(TP_TYPE, "R:R"),
+        StrategyParameter(TP_SHORT_RR, (i / 10.0).toString)))
     })
 
     parametersList.toList
 
-  private def addParametersForTPFixedPercentShort(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForTPFixedPercentShort(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
     (5 to 150).map(i => {
       parametersList.addOne(List(
-        ParametersToTest(takeProfitTypeSelectorXPath, "Fixed Percent", "selectOption"),
-        ParametersToTest(fixedPercentTPShortXPath, (i / 10.0).toString, "fill")))
+        StrategyParameter(TP_TYPE, "Fixed Percent"),
+        StrategyParameter(TP_SHORT_FIXED_PERCENTS, (i / 10.0).toString)))
     })
 
     parametersList.toList
 
 
-  private def addParametersForTPPipsShort(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
-
-    (50 to 300).map(i => {
-      if i % 5 == 0 then
-        parametersList.addOne(List(
-          ParametersToTest(takeProfitTypeSelectorXPath, "PIPS", "selectOption"),
-          ParametersToTest(fixedPercentTPShortXPath, i.toString, "fill")))
-    })
-
-    parametersList.toList
+  //  private def addParametersForTPPipsShort(): List[List[StrategyParameter]] =
+  //    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+  //
+  //    (50 to 300).map(i => {
+  //      if i % 5 == 0 then
+  //        parametersList.addOne(List(
+  //          StrategyParameter(takeProfitTypeSelectorXPath, "PIPS"),
+  //          StrategyParameter(fixedPercentTPShortXPath, i.toString)))
+  //    })
+  //
+  //    parametersList.toList
 }

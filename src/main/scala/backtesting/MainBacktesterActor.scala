@@ -2,7 +2,6 @@ package ch.xavier
 package backtesting
 
 import Application.{executionContext, system}
-import backtesting.TVLocatorsXpath.*
 import backtesting.actors.main.{AffinementActor, SLOptimizerActor, StratOptimizerActor, TPOptimizerActor}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
@@ -37,11 +36,8 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
           context.spawn(AffinementActor(), "affinement-actor"),
         )
 
-        //TODO: Make a new main strat optimizer that tries every combination of the main ones but with big gaps,
-        // then you affine using sequential optimizations
-
         //TODO: Add flat market (good with multiple years), volume, other?
-        //TODO: use multiple TP to optimize profits Before the trailing actor
+        //TODO: use multiple TP to optimize profits Before the trailing actor, check comment in relevant actor
 
         Source(backtesters)
           .mapAsync(1)(backtesterRef => {

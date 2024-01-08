@@ -2,16 +2,15 @@ package ch.xavier
 package backtesting.actors.main
 
 import Application.{executionContext, system}
-import backtesting.TVLocatorsXpath.*
 import backtesting.actors.stopLoss.{SLLongBacktesterActor, SLShortBacktesterActor}
 import backtesting.actors.takeProfit.SLAndTPTrailingBacktesterActor
+import backtesting.{BacktestChartResponseMessage, BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
-import ch.xavier.backtesting.{BacktestChartResponseMessage, BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt

@@ -1,8 +1,8 @@
 package ch.xavier
 package backtesting
 
-import backtesting.TVLocatorsXpath.*
-import backtesting.parameters.ParametersToTest
+import backtesting.TVLocators.MA_TYPE.*
+import backtesting.parameters.StrategyParameter
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
@@ -14,7 +14,6 @@ import java.nio.file.Paths
 import java.util
 import scala.annotation.tailrec
 import scala.util.Random
-
 
 object BacktesterActor {
   def apply(): Behavior[Message] =
@@ -32,7 +31,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestMessage(parametersToTest: List[ParametersToTest], actorRef: ActorRef[Message], chartIdFromMessage: String) =>
+      case BacktestMessage(parametersToTest: List[StrategyParameter], actorRef: ActorRef[Message], chartIdFromMessage: String) =>
         chartId = chartIdFromMessage
 
         if page == null then
@@ -44,7 +43,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
         try {
           enterParameters(parametersToTest, page)
-
           waitForBacktestingResults(page)
           actorRef ! getBacktestingResults(page, parametersToTest)
         }
@@ -59,7 +57,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
             context.self ! message
 
 
-      case SaveParametersMessage(parametersToSave: List[ParametersToTest], ref: ActorRef[Message]) =>
+      case SaveParametersMessage(parametersToSave: List[StrategyParameter], ref: ActorRef[Message]) =>
         resetPage()
 
         try {
@@ -100,7 +98,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     playwright.close()
   }
 
-  private def processTimeoutException(message: Message, actorRef: ActorRef[Message], timeoutException: TimeoutError, parametersToTest: List[ParametersToTest]): Unit = {
+  private def processTimeoutException(message: Message, actorRef: ActorRef[Message], timeoutException: TimeoutError, parametersToTest: List[StrategyParameter]): Unit = {
     val errorCounter = Random.nextInt(1000)
     page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_$errorCounter.png")))
     context.log.warn(s"Timeout error id:$errorCounter when trying to backtest in the end actor, trying again:$timeoutException")
@@ -123,7 +121,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       context.log.info("The saved parameters were already the best ones")
   }
 
-  private def getBacktestingResults(page: Page, parametersToTest: List[ParametersToTest]): BacktestingResultMessage = {
+  private def getBacktestingResults(page: Page, parametersToTest: List[StrategyParameter]): BacktestingResultMessage = {
     if page.getByText("This strategy did not generate any orders throughout the testing range.").all().size() > 0 then
       context.log.debug("Current parameters resulted in no trade.")
       BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, parametersToTest)
@@ -147,29 +145,43 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     else
       locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "").toDouble
 
-  private def enterParameters(parametersToTest: List[ParametersToTest], page: Page): Unit = {
-    for parameterToTest <- parametersToTest do
-      val locator = page.locator(parameterToTest.fullXPath)
+  private def enterParameters(parametersToTest: List[StrategyParameter], page: Page): Unit = {
+    val checkboxes = page.getByRole(AriaRole.CHECKBOX).all()
+    val buttons = page.getByRole(AriaRole.BUTTON).all()
+    val textboxes = page.getByRole(AriaRole.TEXTBOX).all()
 
-      if parameterToTest.action.eq("fill") then
+    for parameterToTest <- parametersToTest do
+      val locatorType: TYPE = parameterToTest.tvLocator.getType
+      var locator: Locator = null
+
+      if locatorType.eq(TYPE.CHECKBOX) then
+        locator = get_locator(checkboxes, parameterToTest)
+
+        val shouldBeClicked = parameterToTest.value.eq("true")
+        if locator.isChecked != shouldBeClicked then
+          clickOnElement(page, locator)
+
+      else if locatorType.eq(TYPE.INPUT) then
+        locator = get_locator(textboxes, parameterToTest)
         locator.fill(parameterToTest.value)
 
-      else if parameterToTest.action.eq("selectOption") then
-        selectOption(page, parameterToTest, locator)
-
-      else if parameterToTest.action.eq("check") then
-        val shouldBeClicked = parameterToTest.value.eq("true")
-
-        if locator.isChecked != shouldBeClicked then
-          locator.setChecked(!locator.isChecked())
+      else if locatorType.eq(TYPE.OPTION) then
+        locator = get_locator(buttons, parameterToTest)
+        clickOnElement(page, locator)
+        page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
   }
 
-  private def selectOption(page: Page, parameterToTest: ParametersToTest, locator: Locator): Unit = {
-    while page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).all().isEmpty do
-      locator.click()
-      Thread.sleep(1000)
+  private def clickOnElement(page: Page, locator: Locator): Unit = {
+    locator.focus()
+    page.mouse().click(locator.boundingBox().x + 1, locator.boundingBox().y + 1)
+  }
 
-    page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
+  private def get_locator(locators: util.List[Locator], parameterToTest: StrategyParameter): Locator = {
+    var index = parameterToTest.tvLocator.getIndex
+    if index < 0 then
+      index = locators.size() + index
+
+    locators.get(index)
   }
 
   private def waitForBacktestingResults(page: Page): Unit =
@@ -194,9 +206,9 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       openChartAndGoToSettings()
     }
     catch {
-      case e: TimeoutError =>
+      case e: Exception =>
         page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_page_${Random.nextInt()}.png")))
-        context.log.warn(s"Timeout error when trying to get a new page, trying again:$e")
+        context.log.warn(s"Exception happened when trying to get a new page, trying again:$e")
 
         page.close()
         openChartAndGoToSettings()
@@ -247,6 +259,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
 
-    browserContext.setDefaultTimeout(90000)
+    browserContext.setDefaultTimeout(15000)
   }
 }

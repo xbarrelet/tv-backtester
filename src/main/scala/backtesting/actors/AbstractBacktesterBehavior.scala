@@ -2,8 +2,8 @@ package ch.xavier
 package backtesting.actors
 
 import Application.{executionContext, system}
-import backtesting.{BacktestMessage, BacktestersSpawnerActor, BacktestingResultMessage, CloseBacktesterMessage, Message, SaveParametersMessage}
-import backtesting.parameters.ParametersToTest
+import backtesting.*
+import backtesting.parameters.StrategyParameter
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
@@ -24,7 +24,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
 
   def logger: Logger
 
-  def optimizeParameters(parametersCombinationToTest: List[List[ParametersToTest]], mainActorRef: ActorRef[Message], chartId: String, evaluationParameter: String = "profitability"): Unit = {
+  def optimizeParameters(parametersCombinationToTest: List[List[StrategyParameter]], mainActorRef: ActorRef[Message], chartId: String, evaluationParameter: String = "profitability"): Unit = {
     Source(parametersCombinationToTest)
       .throttle(1, Random.between(2500, 5000).millis)
       .mapAsync(sys.env("CRAWLERS_NUMBER").toInt)(parametersToTest => {

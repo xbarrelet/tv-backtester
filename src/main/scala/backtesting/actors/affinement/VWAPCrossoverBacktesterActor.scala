@@ -1,13 +1,13 @@
 package ch.xavier
 package backtesting.actors.affinement
 
-import backtesting.TVLocatorsXpath.*
+import backtesting.TVLocators.{USE_VWAP_CROSSOVER, VWAP_LENGTH}
 import backtesting.actors.AbstractBacktesterBehavior
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
+import backtesting.{BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -24,7 +24,7 @@ private class VWAPCrossoverBacktesterActor(context: ActorContext[Message]) exten
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] =
+        val parametersTuplesToTest: List[List[StrategyParameter]] =
           addParametersForVWAPCrossover()
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for vWap crossover affinement")
@@ -36,15 +36,15 @@ private class VWAPCrossoverBacktesterActor(context: ActorContext[Message]) exten
     this
 
 
-  private def addParametersForVWAPCrossover(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForVWAPCrossover(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    parametersList.addOne(List(ParametersToTest(useVWapCrossoverCheckboxXPath, "false", "check")))
+    parametersList.addOne(List(StrategyParameter(USE_VWAP_CROSSOVER, "false")))
 
     (5 to 50).map(length => {
       parametersList.addOne(List(
-        ParametersToTest(useVWapCrossoverCheckboxXPath, "true", "check"),
-        ParametersToTest(rangeFilteringPeriodXPath, length.toString, "fill"),
+        StrategyParameter(USE_VWAP_CROSSOVER, "true"),
+        StrategyParameter(VWAP_LENGTH, length.toString),
       ))
     })
 

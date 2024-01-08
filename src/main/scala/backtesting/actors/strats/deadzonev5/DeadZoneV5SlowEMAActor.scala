@@ -1,13 +1,13 @@
 package ch.xavier
 package backtesting.actors.strats.deadzonev5
 
-import backtesting.TVLocatorsXpath.*
+import backtesting.TVLocators.DEADZONE_SLOW_EMA
 import backtesting.actors.AbstractBacktesterBehavior
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
+import backtesting.{BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -24,7 +24,7 @@ private class DeadZoneV5SlowEMAActor(context: ActorContext[Message]) extends Abs
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] =
+        val parametersTuplesToTest: List[List[StrategyParameter]] =
           addParametersForSlowEMA()
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for DeadZoneV5 slow EMA")
@@ -36,14 +36,13 @@ private class DeadZoneV5SlowEMAActor(context: ActorContext[Message]) extends Abs
     this
 
 
-  private def addParametersForSlowEMA(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForSlowEMA(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (50 to 300).map(i => {
-      if i % 5 == 0 then
-        parametersList.addOne(List(
-          ParametersToTest(slowEMALengthXPath, i.toString, "fill")
-        ))
+    (50 to 300 by 5).map(i => {
+      parametersList.addOne(List(
+        StrategyParameter(DEADZONE_SLOW_EMA, i.toString)
+      ))
     })
 
     parametersList.toList

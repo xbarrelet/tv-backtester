@@ -1,13 +1,13 @@
 package ch.xavier
 package backtesting.actors.affinement
 
-import backtesting.TVLocatorsXpath.*
+import backtesting.TVLocators.{RANGE_FILTER_MULTIPLIER, RANGE_FILTER_PERIOD, USE_RANGE_FILTER}
 import backtesting.actors.AbstractBacktesterBehavior
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
+import backtesting.{BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -24,7 +24,7 @@ private class RangeFilterBacktesterActor(context: ActorContext[Message]) extends
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] =
+        val parametersTuplesToTest: List[List[StrategyParameter]] =
           addParametersForRangeFiltering()
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for range filtering affinement")
@@ -36,19 +36,18 @@ private class RangeFilterBacktesterActor(context: ActorContext[Message]) extends
     this
 
 
-  private def addParametersForRangeFiltering(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForRangeFiltering(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    parametersList.addOne(List(ParametersToTest(useRangeFilteringCheckboxXPath, "false", "check")))
+    parametersList.addOne(List(StrategyParameter(USE_RANGE_FILTER, "false")))
 
-    (5 to 75).map(multiplier => {
-      (5 to 150).map(period => {
-        if multiplier % 5 == 0 && period % 5 == 0 then
-          parametersList.addOne(List(
-            ParametersToTest(useRangeFilteringCheckboxXPath, "true", "check"),
-            ParametersToTest(rangeFilteringPeriodXPath, period.toString, "fill"),
-            ParametersToTest(rangeFilteringMultiplierXPath, (multiplier / 10.0).toString, "fill")
-          ))
+    (5 to 75 by 5).map(multiplier => {
+      (5 to 150 by 5).map(period => {
+        parametersList.addOne(List(
+          StrategyParameter(USE_RANGE_FILTER, "true"),
+          StrategyParameter(RANGE_FILTER_PERIOD, period.toString),
+          StrategyParameter(RANGE_FILTER_MULTIPLIER, (multiplier / 10.0).toString)
+        ))
       })
     })
 

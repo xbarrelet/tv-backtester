@@ -1,13 +1,13 @@
 package ch.xavier
 package backtesting.actors.stopLoss
 
-import backtesting.TVLocatorsXpath.*
+import backtesting.TVLocators.{SL_SHORT_FIXED_PERCENTS, SL_TYPE}
 import backtesting.actors.AbstractBacktesterBehavior
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
+import backtesting.{BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -24,7 +24,7 @@ private class SLShortBacktesterActor(context: ActorContext[Message]) extends Abs
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] =
+        val parametersTuplesToTest: List[List[StrategyParameter]] =
           addParametersForSLShortFixedPercent()
         //            ::: addParametersForSLShortPips()
 
@@ -37,27 +37,27 @@ private class SLShortBacktesterActor(context: ActorContext[Message]) extends Abs
     this
 
 
-  private def addParametersForSLShortFixedPercent(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForSLShortFixedPercent(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
     (5 to 150).map(i => {
       parametersList.addOne(List(
-        ParametersToTest(stopLossTypeSelectorXPath, "Fixed Percent", "selectOption"),
-        ParametersToTest(fixedPercentSLShortXPath, (i / 10.0).toString, "fill")))
+        StrategyParameter(SL_TYPE, "Fixed Percent"),
+        StrategyParameter(SL_SHORT_FIXED_PERCENTS, (i / 10.0).toString)))
     })
 
     parametersList.toList
 
 
-  private def addParametersForSLShortPips(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
-
-    (50 to 300).map(i => {
-      if i % 5 == 0 then
-        parametersList.addOne(List(
-          ParametersToTest(stopLossTypeSelectorXPath, "PIPS", "selectOption"),
-          ParametersToTest(fixedPercentSLShortXPath, i.toString, "fill")))
-    })
-
-    parametersList.toList
+  //  private def addParametersForSLShortPips(): List[List[StrategyParameter]] =
+  //    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+  //
+  //    (50 to 300).map(i => {
+  //      if i % 5 == 0 then
+  //        parametersList.addOne(List(
+  //          StrategyParameter(stopLossTypeSelectorXPath, "PIPS", "selectOption"),
+  //          StrategyParameter(fixedPercentSLShortXPath, i.toString, "fill")))
+  //    })
+  //
+  //    parametersList.toList
 }

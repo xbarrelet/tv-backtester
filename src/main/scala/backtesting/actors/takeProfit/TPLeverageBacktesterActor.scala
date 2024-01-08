@@ -1,13 +1,13 @@
 package ch.xavier
 package backtesting.actors.takeProfit
 
-import backtesting.TVLocatorsXpath.*
+import backtesting.TVLocators.{LEVERAGE_PERCENT, USE_DYNAMIC_LEVERAGE}
 import backtesting.actors.AbstractBacktesterBehavior
-import backtesting.parameters.ParametersToTest
+import backtesting.parameters.StrategyParameter
+import backtesting.{BacktestSpecificPartMessage, Message}
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import ch.xavier.backtesting.{BacktestSpecificPartMessage, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
@@ -24,7 +24,7 @@ private class TPLeverageBacktesterActor(context: ActorContext[Message]) extends 
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[ParametersToTest]] = addParametersForLeverage()
+        val parametersTuplesToTest: List[List[StrategyParameter]] = addParametersForLeverage()
 
         context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for TP leverage optimisation")
 
@@ -35,15 +35,15 @@ private class TPLeverageBacktesterActor(context: ActorContext[Message]) extends 
     this
 
 
-  private def addParametersForLeverage(): List[List[ParametersToTest]] =
-    val parametersList: ListBuffer[List[ParametersToTest]] = ListBuffer()
+  private def addParametersForLeverage(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    parametersList.addOne(List(ParametersToTest(dynamicLeverageCheckboxXPath, "true", "check")))
+    parametersList.addOne(List(StrategyParameter(USE_DYNAMIC_LEVERAGE, "true")))
 
     (1 to 50).map(leverage => {
       parametersList.addOne(List(
-        ParametersToTest(dynamicLeverageCheckboxXPath, "false", "check"),
-        ParametersToTest(leverageAmountXPath, leverage.toString, "fill")))
+        StrategyParameter(USE_DYNAMIC_LEVERAGE, "false"),
+        StrategyParameter(LEVERAGE_PERCENT, leverage.toString)))
     })
 
     parametersList.toList
