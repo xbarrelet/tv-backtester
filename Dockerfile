@@ -1,6 +1,8 @@
-FROM mcr.microsoft.com/playwright:v1.40.0-jammy
+FROM mcr.microsoft.com/playwright:next-jammy-arm64
 
-RUN wget https://download.oracle.com/java/21/archive/jdk-21_linux-x64_bin.deb && sudo dpkg -i jdk-21_linux-x64_bin.deb
+RUN wget https://download.oracle.com/java/21/latest/jdk-21_linux-aarch64_bin.rpm && \
+    rpm -i jdk-21_linux-aarch64_bin.rpm && \
+    rm jdk-21_linux-aarch64_bin.rpm
 
 ADD target/scala-3.3.1/tv-backtester-assembly-0.1.0-SNAPSHOT.jar /tv-backtester.jar
 

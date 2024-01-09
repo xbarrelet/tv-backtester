@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting
 
-import ch.xavier.backtesting.parameters.TVLocators.MA_TYPE.*
+import backtesting.parameters.TVLocators.MA_TYPE.*
 import backtesting.parameters.{StrategyParameter, TYPE}
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -9,6 +9,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.microsoft.playwright.*
 import com.microsoft.playwright.Page.GetByRoleOptions
 import com.microsoft.playwright.options.{AriaRole, Cookie}
+import scala.jdk.CollectionConverters.*
 
 import java.nio.file.Paths
 import java.util
@@ -35,9 +36,9 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         chartId = chartIdFromMessage
 
         if page == null then
-          createNewPage()
+          createNewPage(chartId)
         else
-          resetPage()
+          resetPage(chartId)
 
         context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
 
@@ -58,7 +59,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
 
       case SaveParametersMessage(parametersToSave: List[StrategyParameter], ref: ActorRef[Message]) =>
-        resetPage()
+        resetPage(chartId)
 
         try {
           context.log.info(s"Now saving the best parameters for chart id:$chartId. Parameters:${parametersToSave.map(_.value)}")
@@ -106,9 +107,9 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     context.self ! message
   }
 
-  private def resetPage(): Unit = {
+  private def resetPage(chartId: String): Unit = {
     page.close()
-    createNewPage()
+    createNewPage(chartId)
   }
 
   private def saveChart(page: Page): Unit = {
@@ -151,8 +152,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     val textboxes = page.getByRole(AriaRole.TEXTBOX).all()
 
     for parameterToTest <- parametersToTest do
-      context.log.info(s"Now entering parameter:$parameterToTest")
-
       val locatorType: TYPE = parameterToTest.tvLocator.getType
       var locator: Locator = null
 
@@ -162,18 +161,15 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         val shouldBeClicked = parameterToTest.value.eq("true")
         if locator.isChecked != shouldBeClicked then
           clickOnElement(page, locator)
-          page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"input_3.png")))
 
       else if locatorType.eq(TYPE.INPUT) then
         locator = get_locator(textboxes, parameterToTest)
         locator.fill(parameterToTest.value)
-        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"input_2.png")))
 
       else if locatorType.eq(TYPE.OPTION) then
         locator = get_locator(buttons, parameterToTest)
         clickOnElement(page, locator)
         page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
-        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"input_1.png")))
   }
 
   private def clickOnElement(page: Page, locator: Locator): Unit = {
@@ -203,12 +199,12 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       Thread.sleep(5000)
 
 
-  private def createNewPage(): Unit =
+  private def createNewPage(chartId: String): Unit =
     if browserContext == null then
       initialiseBrowserContext()
 
     try {
-      openChartAndGoToSettings()
+      openChartAndGoToSettings(chartId)
     }
     catch {
       case e: Exception =>
@@ -216,16 +212,16 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         context.log.warn(s"Exception happened when trying to get a new page, trying again:$e")
 
         page.close()
-        openChartAndGoToSettings()
+        openChartAndGoToSettings(chartId)
     }
 
 
   @tailrec
-  private def openChartAndGoToSettings(): Unit = {
+  private def openChartAndGoToSettings(chartId: String): Unit = {
     try {
       page = browserContext.newPage()
 
-      page.navigate(s"https://www.tradingview.com/chart/${sys.env("CHART_ID")}/")
+      page.navigate(s"https://www.tradingview.com/chart/$chartId/")
       page.getByText("Deep Backtesting").waitFor()
 
       page.getByRole(AriaRole.SWITCH).click()
@@ -239,7 +235,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         context.log.warn(s"Error when trying to open a new page, restarting Playwright and trying again:${e.getMessage}")
 
         resetEverything()
-        openChartAndGoToSettings()
+        openChartAndGoToSettings(chartId)
     }
   }
 
@@ -264,6 +260,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
 
-    browserContext.setDefaultTimeout(15000)
+    browserContext.setDefaultTimeout(90000)
   }
 }

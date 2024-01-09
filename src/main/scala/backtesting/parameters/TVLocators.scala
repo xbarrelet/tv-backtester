@@ -2,7 +2,7 @@ package ch.xavier
 package backtesting.parameters
 
 enum TYPE {
-  case INPUT, CHECKBOX, OPTION
+  case INPUT, CHECKBOX, OPTION, TEST
 }
 
 enum TVLocators(locatorType: TYPE, index: Int) {
@@ -51,6 +51,8 @@ enum TVLocators(locatorType: TYPE, index: Int) {
   case LEVERAGE_PERCENT extends TVLocators(TYPE.INPUT, 31)
   case USE_DYNAMIC_LEVERAGE extends TVLocators(TYPE.CHECKBOX, 17)
 
+
+  // STRATEGIES
   // DEADZONE V5
   case DEADZONE_SENSITIVITY extends TVLocators(TYPE.INPUT, 65)
   case DEADZONE_FAST_EMA extends TVLocators(TYPE.INPUT, 66)
@@ -58,6 +60,15 @@ enum TVLocators(locatorType: TYPE, index: Int) {
   case DEADZONE_BB_CHANNEL_LENGTH extends TVLocators(TYPE.INPUT, 68)
   case DEADZONE_BB_STDEV_MULTIPLIER extends TVLocators(TYPE.INPUT, 69)
   case DEADZONE_DEADZONE_PARAMETER extends TVLocators(TYPE.INPUT, 70)
+
+  // SQUEEZE IT
+  case SQUEEZE_BB_LENGTH extends TVLocators(TYPE.INPUT, 66)
+  case SQUEEZE_BB_MULTI_FACTOR extends TVLocators(TYPE.INPUT, 67)
+  case SQUEEZE_KC_LENGTH extends TVLocators(TYPE.INPUT, 68)
+  case SQUEEZE_KC_MULTI_FACTOR extends TVLocators(TYPE.INPUT, 69)
+  case SQUEEZE_WT_FIRST_BEARISH_DIVERGENCE_MIN extends TVLocators(TYPE.INPUT, 70)
+  case SQUEEZE_WT_FIRST_BULLISH_DIVERGENCE_MIN extends TVLocators(TYPE.INPUT, 71)
+
 
 
   // AFFINEMENT
@@ -90,4 +101,6 @@ enum TVLocators(locatorType: TYPE, index: Int) {
   val profitabilityPercentageValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[3]/div[2]/div[1]"
   val profitFactorValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[4]/div[2]/div[1]"
   val maxDrawdownPercentValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[5]/div[2]/div[2]"
+  
+  val strategyNameXpath = "//html/body/div[2]/div[5]/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/div[1]/div"
 }

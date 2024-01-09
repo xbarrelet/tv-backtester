@@ -27,7 +27,7 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
     message match
       case StartBacktesting() =>
         val chartId: String = sys.env("CHART_ID")
-        context.log.info(s"Starting backtesting for chart $chartId")
+//        context.log.info(s"Starting backtesting for chart $chartId")
 
         val backtesters: List[ActorRef[Message]] = List(
           context.spawn(StratOptimizerActor(), "strat-optimizer"),
@@ -35,9 +35,7 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
           context.spawn(TPOptimizerActor(), "tp-optimizer"),
           context.spawn(AffinementActor(), "affinement-actor"),
         )
-        
-        //TODO: Try this indicator? https://www.tradingview.com/chart/W4MV2p8b/
-        
+
         //TODO: Add flat market (good with multiple years), volume, other?
         //TODO: use multiple TP to optimize profits Before the trailing actor, check comment in relevant actor
 

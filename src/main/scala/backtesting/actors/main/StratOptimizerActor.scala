@@ -2,8 +2,9 @@ package ch.xavier
 package backtesting.actors.main
 
 import Application.{executionContext, system}
-import backtesting.actors.strats.*
 import backtesting.actors.strats.deadzonev5.*
+import backtesting.actors.strats.squeeze.*
+import backtesting.parameters.TVLocators.MA_TYPE.strategyNameXpath
 import backtesting.{BacktestChartResponseMessage, BacktestSpecificPartMessage, BacktestingResultMessage, Message}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
@@ -11,6 +12,8 @@ import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
+import com.microsoft.playwright.options.Cookie
+import com.microsoft.playwright.{Browser, BrowserContext, Playwright}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration.DurationInt
@@ -35,15 +38,7 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
       case BacktestSpecificPartMessage(mainActorRefFromMessage: ActorRef[Message], chartId: String) =>
         mainActorRef = mainActorRefFromMessage
 
-        val backtesters: List[ActorRef[Message]] = List(
-          //          context.spawn(DeadZoneV5AllMainParametersActor(), s"dead-zone-v5-all-main-parameters-backtester-$actorsCounter"),
-          context.spawn(DeadZoneV5SensitivityActor(), s"dead-zone-v5-sensitivity-backtester-$actorsCounter"),
-          context.spawn(DeadZoneV5FastEMAActor(), s"dead-zone-v5-fast-ema-backtester-$actorsCounter"),
-          context.spawn(DeadZoneV5SlowEMAActor(), s"dead-zone-v5-slow-ema-backtester-$actorsCounter"),
-          context.spawn(DeadZoneV5BBChannelActor(), s"dead-zone-v5-bb-channel-backtester-$actorsCounter"),
-          context.spawn(DeadZoneV5BBStdDeviationActor(), s"dead-zone-v5-bb-std-dev-backtester-$actorsCounter"),
-          context.spawn(DeadZoneV5DeadzoneActor(), s"dead-zone-v5-deadzone-backtester-$actorsCounter")
-        )
+        val backtesters: List[ActorRef[Message]] = getStrategyActors(chartId)
 
         Source(backtesters)
           //        Source(Random.shuffle(backtesters))
@@ -77,4 +72,64 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
         context.log.warn("Received unknown message in StratOptimizerActor of type: " + message.getClass)
 
     this
+
+  private def getStrategyActors(chartId: String): List[ActorRef[Message]] = {
+    val strategyName = getStrategyNameUsedInChart(chartId)
+
+    if strategyName.contains("DEAD ZONE") then
+      List(
+//        context.spawn(DeadZoneV5AllMainParametersActor(), s"dead-zone-v5-all-main-parameters-backtester-$actorsCounter"),
+        context.spawn(DeadZoneV5SensitivityActor(), s"dead-zone-v5-sensitivity-backtester-$actorsCounter"),
+        context.spawn(DeadZoneV5FastEMAActor(), s"dead-zone-v5-fast-ema-backtester-$actorsCounter"),
+        context.spawn(DeadZoneV5SlowEMAActor(), s"dead-zone-v5-slow-ema-backtester-$actorsCounter"),
+        context.spawn(DeadZoneV5BBChannelActor(), s"dead-zone-v5-bb-channel-backtester-$actorsCounter"),
+        context.spawn(DeadZoneV5BBStdDeviationActor(), s"dead-zone-v5-bb-std-dev-backtester-$actorsCounter"),
+        context.spawn(DeadZoneV5DeadzoneActor(), s"dead-zone-v5-deadzone-backtester-$actorsCounter")
+      )
+
+    else if strategyName.contains("Squeeze") then
+      List(
+        context.spawn(SqueezeBBLengthActor(), s"squeeze-bb-length-backtester-$actorsCounter"),
+        context.spawn(SqueezeBBMultiFactorActor(), s"squeeze-bb-multi-factor-backtester-$actorsCounter"),
+        context.spawn(SqueezeKCLengthActor(), s"squeeze-kc-length-backtester-$actorsCounter"),
+        context.spawn(SqueezeKCMultiFactorActor(), s"squeeze-kc-multi-factor-backtester-$actorsCounter"),
+        context.spawn(SqueezeWTFirstDivergencesMinActor(), s"squeeze-wt-divergences-min-backtester-$actorsCounter"),
+      )
+
+    else
+      context.log.error(s"No recognized strategy detected in the chart:$chartId, aborting backtesting")
+      List.empty
+  }
+
+  private def getStrategyNameUsedInChart(chartId: String): String =
+    val playwright: Playwright = Playwright.create()
+    val browser: Browser = playwright.chromium().launch()
+    val browserContext: BrowserContext = initialiseBrowserContext(browser)
+    val page = browserContext.newPage()
+
+    page.navigate(s"https://www.tradingview.com/chart/$chartId/")
+    page.getByText("Deep Backtesting").waitFor()
+    val strategyName = page.locator(strategyNameXpath).innerText()
+
+    page.close()
+    browserContext.close()
+    browser.close()
+    playwright.close()
+
+    strategyName
+
+  private def initialiseBrowserContext(browser: Browser): BrowserContext = {
+    val browserContext = browser.newContext(
+      Browser.NewContextOptions()
+        .setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36")
+        .setViewportSize(1920, 1080)
+    )
+
+    val cookies: java.util.List[Cookie] = new java.util.ArrayList[Cookie]()
+    cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
+    browserContext.addCookies(cookies)
+
+    browserContext.setDefaultTimeout(15000)
+    browserContext
+  }
 }
