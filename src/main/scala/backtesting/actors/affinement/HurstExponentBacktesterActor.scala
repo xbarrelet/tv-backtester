@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.affinement
 
-import backtesting.TVLocators.{HURST_EXP_LENGTH, USE_HURST_EXP, USE_HURST_EXP_MTF}
+import ch.xavier.backtesting.parameters.TVLocators.{HURST_EXP_LENGTH, USE_HURST_EXP, USE_HURST_EXP_MTF}
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}
@@ -43,15 +43,15 @@ private class HurstExponentBacktesterActor(context: ActorContext[Message]) exten
       StrategyParameter(USE_HURST_EXP, "false")
     ))
 
-    (5 to 150).map(i => {
+    (1 to 100).map(i => {
       parametersList.addOne(List(
         StrategyParameter(USE_HURST_EXP, "true"),
-        StrategyParameter(HURST_EXP_LENGTH, (i / 10.0).toString),
+        StrategyParameter(HURST_EXP_LENGTH, i.toString),
         StrategyParameter(USE_HURST_EXP_MTF, "false")
       ))
       parametersList.addOne(List(
         StrategyParameter(USE_HURST_EXP, "true"),
-        StrategyParameter(HURST_EXP_LENGTH, (i / 10.0).toString),
+        StrategyParameter(HURST_EXP_LENGTH, i.toString),
         StrategyParameter(USE_HURST_EXP_MTF, "true")
       ))
     })

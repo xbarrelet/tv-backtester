@@ -1,5 +1,5 @@
 package ch.xavier
-package backtesting
+package backtesting.parameters
 
 enum TYPE {
   case INPUT, CHECKBOX, OPTION
@@ -66,13 +66,13 @@ enum TVLocators(locatorType: TYPE, index: Int) {
 
   // RANGE FILTER
   case USE_RANGE_FILTER extends TVLocators(TYPE.CHECKBOX, -52)
-  case RANGE_FILTER_PERIOD extends TVLocators(TYPE.INPUT, -48)
-  case RANGE_FILTER_MULTIPLIER extends TVLocators(TYPE.INPUT, -47)
+  case RANGE_FILTER_PERIOD extends TVLocators(TYPE.INPUT, -49)
+  case RANGE_FILTER_MULTIPLIER extends TVLocators(TYPE.INPUT, -48)
 
   //HURST EXPONENT
   case USE_HURST_EXP extends TVLocators(TYPE.CHECKBOX, -49)
   case USE_HURST_EXP_MTF extends TVLocators(TYPE.CHECKBOX, -48)
-  case HURST_EXP_LENGTH extends TVLocators(TYPE.INPUT, -42)
+  case HURST_EXP_LENGTH extends TVLocators(TYPE.INPUT, -43)
 
   // FLAT MARKET
   case USE_FLAT_MARKET extends TVLocators(TYPE.CHECKBOX, -38)
@@ -81,7 +81,7 @@ enum TVLocators(locatorType: TYPE, index: Int) {
 
   // VWAP
   case USE_VWAP_CROSSOVER extends TVLocators(TYPE.CHECKBOX, -35)
-  case VWAP_LENGTH extends TVLocators(TYPE.INPUT, -24)
+  case VWAP_LENGTH extends TVLocators(TYPE.INPUT, -25)
 
 
   // BACKTESTING RESULTS XPATHS

@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.strats.deadzonev5
 
-import backtesting.TVLocators.DEADZONE_SENSITIVITY
+import ch.xavier.backtesting.parameters.TVLocators.DEADZONE_SENSITIVITY
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}
@@ -39,7 +39,7 @@ private class DeadZoneV5SensitivityActor(context: ActorContext[Message]) extends
   private def addParametersForSensitivity(): List[List[StrategyParameter]] =
     val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (0 to 600 by 10).map(i => {
+    (10 to 600 by 10).map(i => {
       parametersList.addOne(List(
         StrategyParameter(DEADZONE_SENSITIVITY, i.toString)
       ))

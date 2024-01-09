@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.takeProfit
 
-import backtesting.TVLocators.{TP_LONG_FIXED_PERCENTS, TP_LONG_RR, TP_TYPE}
+import ch.xavier.backtesting.parameters.TVLocators.{TP_LONG_FIXED_PERCENTS, TP_LONG_RR, TP_TYPE}
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}

@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.takeProfit
 
-import backtesting.TVLocators.*
+import ch.xavier.backtesting.parameters.TVLocators.*
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}
@@ -44,7 +44,8 @@ private class SLAndTPTrailingBacktesterActor(context: ActorContext[Message]) ext
       StrategyParameter(USE_TRAILING_TP, "false"))
     )
 
-    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
+    List("Instant", "After Hit TP 1").map(condition => {
+//    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
       (1 to 3).map(multiplier => {
         (1 to 75).map(threshold => {
           parametersList.addOne(List(

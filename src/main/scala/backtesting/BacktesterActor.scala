@@ -1,8 +1,8 @@
 package ch.xavier
 package backtesting
 
-import backtesting.TVLocators.MA_TYPE.*
-import backtesting.parameters.StrategyParameter
+import ch.xavier.backtesting.parameters.TVLocators.MA_TYPE.*
+import backtesting.parameters.{StrategyParameter, TYPE}
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
@@ -39,7 +39,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         else
           resetPage()
 
-        context.log.debug(s"Backtesting parameters:${parametersToTest.map(_.value)}")
+        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
 
         try {
           enterParameters(parametersToTest, page)
@@ -151,6 +151,8 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     val textboxes = page.getByRole(AriaRole.TEXTBOX).all()
 
     for parameterToTest <- parametersToTest do
+      context.log.info(s"Now entering parameter:$parameterToTest")
+
       val locatorType: TYPE = parameterToTest.tvLocator.getType
       var locator: Locator = null
 
@@ -160,15 +162,18 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         val shouldBeClicked = parameterToTest.value.eq("true")
         if locator.isChecked != shouldBeClicked then
           clickOnElement(page, locator)
+          page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"input_3.png")))
 
       else if locatorType.eq(TYPE.INPUT) then
         locator = get_locator(textboxes, parameterToTest)
         locator.fill(parameterToTest.value)
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"input_2.png")))
 
       else if locatorType.eq(TYPE.OPTION) then
         locator = get_locator(buttons, parameterToTest)
         clickOnElement(page, locator)
         page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"input_1.png")))
   }
 
   private def clickOnElement(page: Page, locator: Locator): Unit = {

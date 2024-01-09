@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.affinement
 
-import backtesting.TVLocators.{USE_VWAP_CROSSOVER, VWAP_LENGTH}
+import ch.xavier.backtesting.parameters.TVLocators.{USE_VWAP_CROSSOVER, VWAP_LENGTH}
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}

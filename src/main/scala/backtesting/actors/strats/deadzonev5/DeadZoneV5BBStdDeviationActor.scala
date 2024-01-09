@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.strats.deadzonev5
 
-import backtesting.TVLocators.DEADZONE_BB_STDEV_MULTIPLIER
+import ch.xavier.backtesting.parameters.TVLocators.DEADZONE_BB_STDEV_MULTIPLIER
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}

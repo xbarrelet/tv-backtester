@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.strats.deadzonev5
 
-import backtesting.TVLocators.DEADZONE_DEADZONE_PARAMETER
+import ch.xavier.backtesting.parameters.TVLocators.DEADZONE_DEADZONE_PARAMETER
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}
@@ -39,7 +39,7 @@ private class DeadZoneV5DeadzoneActor(context: ActorContext[Message]) extends Ab
   private def addParametersForDeadzone(): List[List[StrategyParameter]] =
     val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (0 to 150 by 2).map(i => {
+    (2 to 150 by 2).map(i => {
       parametersList.addOne(List(
         StrategyParameter(DEADZONE_DEADZONE_PARAMETER, (i / 10.0).toString)
       ))

@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.affinement
 
-import backtesting.TVLocators.{RANGE_FILTER_MULTIPLIER, RANGE_FILTER_PERIOD, USE_RANGE_FILTER}
+import ch.xavier.backtesting.parameters.TVLocators.{RANGE_FILTER_MULTIPLIER, RANGE_FILTER_PERIOD, USE_RANGE_FILTER}
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}

@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.stopLoss
 
-import backtesting.TVLocators.{SL_SHORT_FIXED_PERCENTS, SL_TYPE}
+import ch.xavier.backtesting.parameters.TVLocators.{SL_SHORT_FIXED_PERCENTS, SL_TYPE}
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}

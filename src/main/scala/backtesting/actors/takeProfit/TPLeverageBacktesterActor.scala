@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.takeProfit
 
-import backtesting.TVLocators.{LEVERAGE_PERCENT, USE_DYNAMIC_LEVERAGE}
+import ch.xavier.backtesting.parameters.TVLocators.{LEVERAGE_PERCENT, USE_DYNAMIC_LEVERAGE}
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}

@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.strats.deadzonev5
 
-import backtesting.TVLocators.DEADZONE_BB_CHANNEL_LENGTH
+import ch.xavier.backtesting.parameters.TVLocators.DEADZONE_BB_CHANNEL_LENGTH
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}

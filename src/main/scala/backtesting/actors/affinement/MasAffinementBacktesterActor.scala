@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.affinement
 
-import backtesting.TVLocators.MA_TYPE
+import ch.xavier.backtesting.parameters.TVLocators.MA_TYPE
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}

@@ -1,7 +1,7 @@
 package ch.xavier
 package backtesting.actors.strats.deadzonev5
 
-import backtesting.TVLocators.DEADZONE_FAST_EMA
+import ch.xavier.backtesting.parameters.TVLocators.DEADZONE_FAST_EMA
 import backtesting.actors.AbstractBacktesterBehavior
 import backtesting.parameters.StrategyParameter
 import backtesting.{BacktestSpecificPartMessage, Message}
@@ -39,7 +39,7 @@ private class DeadZoneV5FastEMAActor(context: ActorContext[Message]) extends Abs
   private def addParametersForFastEMA(): List[List[StrategyParameter]] =
     val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (0 to 80 by 2).map(i => {
+    (10 to 80 by 2).map(i => {
       parametersList.addOne(List(
         StrategyParameter(DEADZONE_FAST_EMA, i.toString)
       ))
