@@ -32,7 +32,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
       })
       .map(_.asInstanceOf[BacktestingResultMessage])
       .map(result => logResults(result))
-      .filter(_.closedTradesNumber > 50)
+      .filter(_.closedTradesNumber > 100)
       .filter(_.maxDrawdownPercentage < 30)
       .filter(_.netProfitsPercentage > 5)
       //      .filter(_.profitFactor > 1)
@@ -71,8 +71,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
           }
 
         case Failure(e) =>
-          if !e.isInstanceOf[java.util.NoSuchElementException] then
-            logger.error("Exception received in optimizeParameters:" + e.printStackTrace())
+          logger.error("Exception received in optimizeParameters." + e)
 
           mainActorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
           backtestersSpawner ! CloseBacktesterMessage()

@@ -22,19 +22,25 @@ object MainBacktesterActor {
 class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   implicit val timeout: Timeout = 10800.seconds
   private val logger: Logger = LoggerFactory.getLogger("MainBacktesterActor")
+  private val config: BacktesterConfig.type = BacktesterConfig
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case StartBacktesting() =>
         val chartId: String = sys.env("CHART_ID")
-//        context.log.info(s"Starting backtesting for chart $chartId")
+        context.log.info(s"Starting backtesting for chart $chartId")
 
+        config.strategyName = "Squeeze"
         val backtesters: List[ActorRef[Message]] = List(
-          context.spawn(StratOptimizerActor(), "strat-optimizer"),
+//          context.spawn(StratOptimizerActor(), "strat-optimizer"),
           context.spawn(SLOptimizerActor(), "sl-optimizer"),
           context.spawn(TPOptimizerActor(), "tp-optimizer"),
           context.spawn(AffinementActor(), "affinement-actor"),
         )
+
+        //#export CHART_ID=gXnfBatP && Start from SL, too slow during the day/evening.
+        //#export CHART_ID=5H92Bwc5 &&
+        //#export CHART_ID=hNarRm5Z &&
 
         //TODO: Add flat market (good with multiple years), volume, other?
         //TODO: use multiple TP to optimize profits Before the trailing actor, check comment in relevant actor

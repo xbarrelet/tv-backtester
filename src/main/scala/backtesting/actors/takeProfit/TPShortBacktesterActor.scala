@@ -41,7 +41,7 @@ private class TPShortBacktesterActor(context: ActorContext[Message]) extends Abs
   private def addParametersForTPRRShort(): List[List[StrategyParameter]] =
     val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (5 to 75).map(i => {
+    (1 to 75).map(i => {
       parametersList.addOne(List(
         StrategyParameter(TP_TYPE, "R:R"),
         StrategyParameter(TP_SHORT_RR, (i / 10.0).toString)))
@@ -52,7 +52,7 @@ private class TPShortBacktesterActor(context: ActorContext[Message]) extends Abs
   private def addParametersForTPFixedPercentShort(): List[List[StrategyParameter]] =
     val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (5 to 150).map(i => {
+    (1 to 150).map(i => {
       parametersList.addOne(List(
         StrategyParameter(TP_TYPE, "Fixed Percent"),
         StrategyParameter(TP_SHORT_FIXED_PERCENTS, (i / 10.0).toString)))

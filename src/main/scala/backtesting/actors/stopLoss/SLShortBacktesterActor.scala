@@ -40,7 +40,7 @@ private class SLShortBacktesterActor(context: ActorContext[Message]) extends Abs
   private def addParametersForSLShortFixedPercent(): List[List[StrategyParameter]] =
     val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (5 to 150).map(i => {
+    (1 to 150).map(i => {
       parametersList.addOne(List(
         StrategyParameter(SL_TYPE, "Fixed Percent"),
         StrategyParameter(SL_SHORT_FIXED_PERCENTS, (i / 10.0).toString)))

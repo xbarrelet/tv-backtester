@@ -11,6 +11,8 @@ enum TVLocators(locatorType: TYPE, index: Int) {
 
   def getIndex: Int = index
 
+  //TODO: You could add the average/median and amplitude (min/max) in each locator so the factory would give you the lists directly.
+
 
   // TP
   case TP_TYPE extends TVLocators(TYPE.OPTION, 83)

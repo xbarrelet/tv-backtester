@@ -41,7 +41,7 @@ private class SLLongBacktesterActor(context: ActorContext[Message]) extends Abst
   private def addParametersForSLATR(): List[List[StrategyParameter]] =
     val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (5 to 150).map(i => {
+    (1 to 150).map(i => {
       parametersList.addOne(List(
         StrategyParameter(SL_TYPE, "ATR"),
         StrategyParameter(SL_ATR_MULTIPLIER, (i / 10.0).toString)))
@@ -53,7 +53,7 @@ private class SLLongBacktesterActor(context: ActorContext[Message]) extends Abst
   private def addParametersForSLLongFixedPercent(): List[List[StrategyParameter]] =
     val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (5 to 125).map(i => {
+    (1 to 125).map(i => {
       parametersList.addOne(List(
         StrategyParameter(SL_TYPE, "Fixed Percent"),
         StrategyParameter(SL_LONG_FIXED_PERCENTS, (i / 10.0).toString)))

@@ -27,6 +27,7 @@ object StratOptimizerActor {
 private class StratOptimizerActor(context: ActorContext[Message]) extends AbstractBehavior(context) {
   implicit val timeout: Timeout = 7200.seconds
   private val logger: Logger = LoggerFactory.getLogger("StratOptimizerActor")
+  private val config: BacktesterConfig.type = BacktesterConfig
 
   private var mainActorRef: ActorRef[Message] = _
   private var bestProfitabilityPercentageResult: Double = -1
@@ -75,6 +76,7 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
 
   private def getStrategyActors(chartId: String): List[ActorRef[Message]] = {
     val strategyName = getStrategyNameUsedInChart(chartId)
+    config.strategyName = strategyName
 
     if strategyName.contains("DEAD ZONE") then
       List(
@@ -129,7 +131,7 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
     cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
 
-    browserContext.setDefaultTimeout(15000)
+    browserContext.setDefaultTimeout(30000)
     browserContext
   }
 }

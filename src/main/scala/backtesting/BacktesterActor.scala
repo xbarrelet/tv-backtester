@@ -25,6 +25,8 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   private var playwright: Playwright = Playwright.create()
   private var chromiumBrowserType: BrowserType = playwright.chromium()
   private var browser: Browser = chromiumBrowserType.launch()
+  private val config: BacktesterConfig.type = BacktesterConfig
+
   private var chartId = ""
   private var browserContext: BrowserContext = null
   private var page: Page = null
@@ -101,8 +103,8 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
   private def processTimeoutException(message: Message, actorRef: ActorRef[Message], timeoutException: TimeoutError, parametersToTest: List[StrategyParameter]): Unit = {
     val errorCounter = Random.nextInt(1000)
-    page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_$errorCounter.png")))
-    context.log.warn(s"Timeout error id:$errorCounter when trying to backtest in the end actor, trying again:$timeoutException")
+//    page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_$errorCounter.png")))
+    context.log.warn(s"Timeout error id:$errorCounter when trying to backtest in the end actor with parameters:${parametersToTest.map(_.value)}, trying again")
 
     context.self ! message
   }
@@ -156,19 +158,21 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       var locator: Locator = null
 
       if locatorType.eq(TYPE.CHECKBOX) then
-        locator = get_locator(checkboxes, parameterToTest)
+        locator = get_locator(checkboxes, parameterToTest, locatorType)
 
         val shouldBeClicked = parameterToTest.value.eq("true")
         if locator.isChecked != shouldBeClicked then
           clickOnElement(page, locator)
 
       else if locatorType.eq(TYPE.INPUT) then
-        locator = get_locator(textboxes, parameterToTest)
+        locator = get_locator(textboxes, parameterToTest, locatorType)
         locator.fill(parameterToTest.value)
 
       else if locatorType.eq(TYPE.OPTION) then
-        locator = get_locator(buttons, parameterToTest)
+        locator = get_locator(buttons, parameterToTest, locatorType)
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"option_1.png")))
         clickOnElement(page, locator)
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"option_2.png")))
         page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
   }
 
@@ -177,10 +181,13 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     page.mouse().click(locator.boundingBox().x + 1, locator.boundingBox().y + 1)
   }
 
-  private def get_locator(locators: util.List[Locator], parameterToTest: StrategyParameter): Locator = {
+  private def get_locator(locators: util.List[Locator], parameterToTest: StrategyParameter, locatorType: TYPE): Locator = {
     var index = parameterToTest.tvLocator.getIndex
     if index < 0 then
       index = locators.size() + index
+
+    if locatorType.eq(TYPE.OPTION) && config.strategyName.eq("Squeeze") then
+      index -= 1
 
     locators.get(index)
   }
