@@ -12,6 +12,7 @@ import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
+import ch.xavier.backtesting.actors.strats.fvma.{FVMAADXLengthActor, FVMAATRLengthActor, FVMAFactorActor, FVMAFastLengthActor, FVMAMALengthActor, FVMASignalLengthActor, FVMASlowLengthActor, FVMAWeigthingActor}
 import com.microsoft.playwright.options.Cookie
 import com.microsoft.playwright.{Browser, BrowserContext, Playwright}
 import org.slf4j.{Logger, LoggerFactory}
@@ -77,7 +78,9 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
   private def getStrategyActors(chartId: String): List[ActorRef[Message]] = {
     val strategyName = getStrategyNameUsedInChart(chartId)
     config.strategyName = strategyName
+    context.log.info("Strategy name detected:" + strategyName)
 
+    //TODO: Refactoring in something that doesn't require so many new actors
     if strategyName.contains("DEAD ZONE") then
       List(
 //        context.spawn(DeadZoneV5AllMainParametersActor(), s"dead-zone-v5-all-main-parameters-backtester-$actorsCounter"),
@@ -96,6 +99,18 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
         context.spawn(SqueezeKCLengthActor(), s"squeeze-kc-length-backtester-$actorsCounter"),
         context.spawn(SqueezeKCMultiFactorActor(), s"squeeze-kc-multi-factor-backtester-$actorsCounter"),
         context.spawn(SqueezeWTFirstDivergencesMinActor(), s"squeeze-wt-divergences-min-backtester-$actorsCounter"),
+      )
+
+    else if strategyName.contains("FVMA") then
+      List(
+        context.spawn(FVMAATRLengthActor(), s"fvma-atr-length-backtester-$actorsCounter"),
+        context.spawn(FVMAFactorActor(), s"fvma-factor-backtester-$actorsCounter"),
+        context.spawn(FVMAADXLengthActor(), s"fvma-adx-length-backtester-$actorsCounter"),
+        context.spawn(FVMAWeigthingActor(), s"fvma-weighting-backtester-$actorsCounter"),
+        context.spawn(FVMAMALengthActor(), s"fvma-ma-length-backtester-$actorsCounter"),
+        context.spawn(FVMAFastLengthActor(), s"fvma-fast-length-backtester-$actorsCounter"),
+        context.spawn(FVMASlowLengthActor(), s"fvma-slow-length-backtester-$actorsCounter"),
+        context.spawn(FVMASignalLengthActor(), s"fvma-signal-backtester-$actorsCounter"),
       )
 
     else
@@ -118,7 +133,7 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
     browser.close()
     playwright.close()
 
-    strategyName
+    strategyName.split("by").head
 
   private def initialiseBrowserContext(browser: Browser): BrowserContext = {
     val browserContext = browser.newContext(

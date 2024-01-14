@@ -1,6 +1,8 @@
 package ch.xavier
 package backtesting.parameters
 
+import backtesting.actors.strats.fvma.FVMAATRLengthActor
+
 enum TYPE {
   case INPUT, CHECKBOX, OPTION, TEST
 }
@@ -70,6 +72,16 @@ enum TVLocators(locatorType: TYPE, index: Int) {
   case SQUEEZE_KC_MULTI_FACTOR extends TVLocators(TYPE.INPUT, 69)
   case SQUEEZE_WT_FIRST_BEARISH_DIVERGENCE_MIN extends TVLocators(TYPE.INPUT, 70)
   case SQUEEZE_WT_FIRST_BULLISH_DIVERGENCE_MIN extends TVLocators(TYPE.INPUT, 71)
+  
+  // FVMA
+  case FVMA_FAST_ATR_LENGTH extends TVLocators(TYPE.INPUT, 57)
+  case FVMA_FACTOR extends TVLocators(TYPE.INPUT, 58)
+  case FVMA_ADX_LENGTH extends TVLocators(TYPE.INPUT, 59)
+  case FVMA_WEIGHTING extends TVLocators(TYPE.INPUT, 60)
+  case FVMA_MA_LENGTH extends TVLocators(TYPE.INPUT, 61)
+  case FVMA_FAST_LENGTH extends TVLocators(TYPE.INPUT, 62)
+  case FVMA_SLOW_LENGTH extends TVLocators(TYPE.INPUT, 63)
+  case FVMA_SIGNAL_LENGTH extends TVLocators(TYPE.INPUT, 64)
 
 
 

@@ -34,7 +34,7 @@ abstract class AbstractBacktesterBehavior(context: ActorContext[Message]) extend
       .map(result => logResults(result))
       .filter(_.closedTradesNumber > 100)
       .filter(_.maxDrawdownPercentage < 30)
-      .filter(_.netProfitsPercentage > 5)
+      .filter(_.netProfitsPercentage > 20)
       //      .filter(_.profitFactor > 1)
       .map(results.append)
       .runWith(Sink.last)

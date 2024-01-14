@@ -27,6 +27,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   private var browser: Browser = chromiumBrowserType.launch()
   private val config: BacktesterConfig.type = BacktesterConfig
 
+  private val pageTimeout = 90000
   private var chartId = ""
   private var browserContext: BrowserContext = null
   private var page: Page = null
@@ -49,6 +50,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
           waitForBacktestingResults(page)
           actorRef ! getBacktestingResults(page, parametersToTest)
         }
+
         catch
           case timeoutException: TimeoutError =>
             processTimeoutException(message, actorRef, timeoutException, parametersToTest)
@@ -156,6 +158,9 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     for parameterToTest <- parametersToTest do
       val locatorType: TYPE = parameterToTest.tvLocator.getType
       var locator: Locator = null
+//      context.log.info(s"Entering parameter:${parameterToTest.value} with locator type:$locatorType")
+
+//      fillTextboxesWithIncrementedCounter(page, textboxes)
 
       if locatorType.eq(TYPE.CHECKBOX) then
         locator = get_locator(checkboxes, parameterToTest, locatorType)
@@ -170,15 +175,28 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
       else if locatorType.eq(TYPE.OPTION) then
         locator = get_locator(buttons, parameterToTest, locatorType)
-        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"option_1.png")))
+//        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"option1.png")))
         clickOnElement(page, locator)
-        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"option_2.png")))
+//        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"option2.png")))
         page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
+  }
+
+  private def fillTextboxesWithIncrementedCounter(page: Page, textboxes: util.List[Locator]): Unit = {
+    var counter = 0
+    for textbox <- textboxes.asScala do
+      textbox.fill(counter.toString)
+      counter += 1
+
+    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
+    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
+
+    saveChart(page)
+    context.log.info("Done")
   }
 
   private def clickOnElement(page: Page, locator: Locator): Unit = {
     locator.focus()
-    page.mouse().click(locator.boundingBox().x + 1, locator.boundingBox().y + 1)
+    page.mouse().click(locator.boundingBox().x + 5, locator.boundingBox().y + 5)
   }
 
   private def get_locator(locators: util.List[Locator], parameterToTest: StrategyParameter, locatorType: TYPE): Locator = {
@@ -186,8 +204,11 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     if index < 0 then
       index = locators.size() + index
 
-    if locatorType.eq(TYPE.OPTION) && config.strategyName.eq("Squeeze") then
-      index -= 1
+//    if locatorType.eq(TYPE.OPTION) && config.strategyName.eq("Squeeze") then
+//      index -= 1
+
+    if locatorType.eq(TYPE.OPTION) then
+      index += config.optionDelay
 
     locators.get(index)
   }
@@ -202,9 +223,14 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     if generateReportButton.isEnabled then
       generateReportButton.click()
 
+    var remainingSecondsBeforeTimeout = pageTimeout
     while page.getByText("This strategy did not generate any orders throughout the testing range.").all().isEmpty && page.getByText("Net Profit").all().isEmpty do
       Thread.sleep(5000)
+      remainingSecondsBeforeTimeout -= 5000
 
+
+      if remainingSecondsBeforeTimeout < 0 then
+        throw new TimeoutError("Page stuck on waiting for the results, trying again")
 
   private def createNewPage(chartId: String): Unit =
     if browserContext == null then
@@ -267,6 +293,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     cookies.add(new Cookie("sessionid", sys.env("SESSION_ID")).setDomain(".tradingview.com").setPath("/"))
     browserContext.addCookies(cookies)
 
-    browserContext.setDefaultTimeout(90000)
+    browserContext.setDefaultTimeout(pageTimeout)
   }
 }

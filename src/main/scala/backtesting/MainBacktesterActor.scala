@@ -30,17 +30,16 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
         val chartId: String = sys.env("CHART_ID")
         context.log.info(s"Starting backtesting for chart $chartId")
 
-        config.strategyName = "Squeeze"
+//        config.strategyName = "Squeeze"
+        config.optionDelay = -1
         val backtesters: List[ActorRef[Message]] = List(
 //          context.spawn(StratOptimizerActor(), "strat-optimizer"),
-          context.spawn(SLOptimizerActor(), "sl-optimizer"),
+          context.spawn(SLOptimizerActor(), "sl-optimizer"), //ADJUST THE OFFSET FOR CURRENT FVMA
           context.spawn(TPOptimizerActor(), "tp-optimizer"),
           context.spawn(AffinementActor(), "affinement-actor"),
         )
 
-        //#export CHART_ID=gXnfBatP && Start from SL, too slow during the day/evening.
-        //#export CHART_ID=5H92Bwc5 &&
-        //#export CHART_ID=hNarRm5Z &&
+        //TODO: Refactor the main strat actors part, you should have a rangeOfParameters with range (le to function) + TTVLocator?
 
         //TODO: Add flat market (good with multiple years), volume, other?
         //TODO: use multiple TP to optimize profits Before the trailing actor, check comment in relevant actor
@@ -57,6 +56,7 @@ class MainBacktesterActor(context: ActorContext[Message]) extends AbstractBehavi
 
             case Failure(e) =>
               logger.error("Exception received during global backtesting:" + e)
+              System.exit(0)
           }
 
       case _ =>
