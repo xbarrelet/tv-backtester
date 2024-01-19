@@ -1,6 +1,7 @@
 package ch.xavier
 package backtesting.parameters
 
-final case class StrategyParameter(tvLocator: TVLocators, value: String)
+final case class StrategyParameter(tvLocator: TVLocator, value: String)
 
-//TODO: I'll need a factory later :)
+object StrategyParameter:
+  def empty: StrategyParameter = StrategyParameter(TVLocator.EMPTY, "")

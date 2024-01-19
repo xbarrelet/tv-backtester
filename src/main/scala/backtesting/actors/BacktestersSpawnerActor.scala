@@ -1,7 +1,8 @@
 package ch.xavier
-package backtesting
+package backtesting.actors
 
 import Application.{executionContext, system}
+import backtesting.*
 import backtesting.parameters.StrategyParameter
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
@@ -30,10 +31,10 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestMessage(parametersToTest: List[StrategyParameter], actorRef: ActorRef[Message], chartId: String) =>
+      case OptimizeParametersMessage(parametersToTest: List[StrategyParameter], actorRef: ActorRef[Message], chartId: String) =>
         val ref: ActorRef[Message] = backtestersPool.dequeue()
 
-        val response: Future[Message] = ref ? (myRef => BacktestMessage(parametersToTest, myRef, chartId))
+        val response: Future[Message] = ref ? (myRef => OptimizeParametersMessage(parametersToTest, myRef, chartId))
 
         response.onComplete {
           case Success(result: Message) =>
@@ -47,7 +48,6 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
 
       case SaveParametersMessage(parametersToSave: List[StrategyParameter], actorRef: ActorRef[Message]) =>
         val ref: ActorRef[Message] = backtestersPool.dequeue()
-
         val response: Future[Message] = ref ? (myRef => SaveParametersMessage(parametersToSave, myRef))
 
         response.onComplete {
@@ -76,6 +76,5 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
       backtestersPool.enqueue(context.spawn(BacktesterActor(), s"BacktesterActor-$actorsCounter"))
       actorsCounter += 1
 
-    logger.info(s"Backtesters pool instantiated with ${backtestersPool.size} actors")
     backtestersPool
 }

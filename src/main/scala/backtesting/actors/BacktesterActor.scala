@@ -1,7 +1,8 @@
 package ch.xavier
-package backtesting
+package backtesting.actors
 
-import backtesting.parameters.TVLocators.MA_TYPE.*
+import backtesting.*
+import backtesting.parameters.TVLocator.MA_TYPE.*
 import backtesting.parameters.{StrategyParameter, TYPE}
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -9,11 +10,11 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.microsoft.playwright.*
 import com.microsoft.playwright.Page.GetByRoleOptions
 import com.microsoft.playwright.options.{AriaRole, Cookie}
-import scala.jdk.CollectionConverters.*
 
 import java.nio.file.Paths
 import java.util
 import scala.annotation.tailrec
+import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 object BacktesterActor {
@@ -27,7 +28,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   private var browser: Browser = chromiumBrowserType.launch()
   private val config: BacktesterConfig.type = BacktesterConfig
 
-  private val pageTimeout = 90000
+  private val pageTimeout = 120000
   private var chartId = ""
   private var browserContext: BrowserContext = null
   private var page: Page = null
@@ -35,15 +36,11 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case BacktestMessage(parametersToTest: List[StrategyParameter], actorRef: ActorRef[Message], chartIdFromMessage: String) =>
+      case OptimizeParametersMessage(parametersToTest: List[StrategyParameter], actorRef: ActorRef[Message], chartIdFromMessage: String) =>
         chartId = chartIdFromMessage
+        resetPage(chartId)
 
-        if page == null then
-          createNewPage(chartId)
-        else
-          resetPage(chartId)
-
-        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
+//        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
 
         try {
           enterParameters(parametersToTest, page)
@@ -66,7 +63,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         resetPage(chartId)
 
         try {
-          context.log.info(s"Now saving the best parameters for chart id:$chartId. Parameters:${parametersToSave.map(_.value)}")
+          context.log.info(s"Now saving the best parameters of last optimization pass with parameters:${parametersToSave.map(_.value)}")
 
           enterParameters(parametersToSave, page)
 
@@ -85,7 +82,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
 
       case CloseBacktesterMessage() =>
-        context.log.debug("Shutting down backtester actor")
+//        context.log.info("Shutting down backtester actor")
 
         closeEverything()
         Behaviors.stopped
@@ -112,7 +109,9 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   }
 
   private def resetPage(chartId: String): Unit = {
-    page.close()
+    if page != null then
+      page.close()
+
     createNewPage(chartId)
   }
 
@@ -122,8 +121,10 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       Thread.sleep(3000)
 
       context.log.info("Best parameters saved")
+      context.log.info("")
     else
       context.log.info("The saved parameters were already the best ones")
+      context.log.info("")
   }
 
   private def getBacktestingResults(page: Page, parametersToTest: List[StrategyParameter]): BacktestingResultMessage = {
@@ -158,9 +159,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     for parameterToTest <- parametersToTest do
       val locatorType: TYPE = parameterToTest.tvLocator.getType
       var locator: Locator = null
-//      context.log.info(s"Entering parameter:${parameterToTest.value} with locator type:$locatorType")
-
-//      fillTextboxesWithIncrementedCounter(page, textboxes)
+//      context.log.info(s"Entering for locator type:$locatorType value:${parameterToTest.value}")
 
       if locatorType.eq(TYPE.CHECKBOX) then
         locator = get_locator(checkboxes, parameterToTest, locatorType)
@@ -168,30 +167,71 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         val shouldBeClicked = parameterToTest.value.eq("true")
         if locator.isChecked != shouldBeClicked then
           clickOnElement(page, locator)
+          page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"tests/${config.botifyVersion}/checkbox_${parameterToTest.tvLocator.toString}.png")))
 
       else if locatorType.eq(TYPE.INPUT) then
         locator = get_locator(textboxes, parameterToTest, locatorType)
         locator.fill(parameterToTest.value)
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"tests/${config.botifyVersion}/input_${parameterToTest.tvLocator.toString}.png")))
 
       else if locatorType.eq(TYPE.OPTION) then
         locator = get_locator(buttons, parameterToTest, locatorType)
-//        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"option1.png")))
         clickOnElement(page, locator)
-//        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"option2.png")))
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"tests/${config.botifyVersion}/option_${parameterToTest.tvLocator.toString}.png")))
         page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
+
+      else if locatorType.eq(TYPE.TEST) then
+        context.log.info("Testing the current chart")
+        context.log.info("")
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get("tests/test.png")))
+
+        testCheckboxes(page, checkboxes)
+        testButtons(page, buttons)
+
+        fillTextboxesWithIncrementedCounter(page, textboxes)
+        context.log.info(s"${buttons.size()} textboxes filled")
+
+        page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
+        page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
+        saveChart(page)
+        context.log.info("Tests for current chart done")
+  }
+
+  private def testButtons(page: Page, buttons: util.List[Locator]): Unit = {
+    var buttonsCounter = 0
+
+    for button <- buttons.asScala do
+      if buttonsCounter > 60 then
+        button.focus()
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"tests/button_$buttonsCounter.png")))
+
+      buttonsCounter += 1
+
+    context.log.info(s"${buttons.size()} buttons screenshots taken")
+  }
+
+  private def testCheckboxes(page: Page, checkboxes: util.List[Locator]): Unit = {
+    var checkboxCounter = 0
+    for checkbox <- checkboxes.asScala do
+      if checkboxCounter > 5 then
+        checkbox.focus()
+        if !checkbox.isChecked then
+          page.mouse().click(checkbox.boundingBox().x + 5, checkbox.boundingBox().y + 5)
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"tests/checkbox_$checkboxCounter.png")))
+        checkbox.focus()
+        page.mouse().click(checkbox.boundingBox().x + 5, checkbox.boundingBox().y + 5)
+
+      checkboxCounter += 1
+
+    context.log.info(s"${checkboxes.size()} checkboxes screenshots taken")
   }
 
   private def fillTextboxesWithIncrementedCounter(page: Page, textboxes: util.List[Locator]): Unit = {
     var counter = 0
+
     for textbox <- textboxes.asScala do
       textbox.fill(counter.toString)
       counter += 1
-
-    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Ok")).click()
-    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Generate report")).waitFor()
-
-    saveChart(page)
-    context.log.info("Done")
   }
 
   private def clickOnElement(page: Page, locator: Locator): Unit = {
@@ -203,12 +243,6 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     var index = parameterToTest.tvLocator.getIndex
     if index < 0 then
       index = locators.size() + index
-
-//    if locatorType.eq(TYPE.OPTION) && config.strategyName.eq("Squeeze") then
-//      index -= 1
-
-    if locatorType.eq(TYPE.OPTION) then
-      index += config.optionDelay
 
     locators.get(index)
   }
@@ -241,10 +275,11 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     }
     catch {
       case e: Exception =>
-        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_page_${Random.nextInt()}.png")))
-        context.log.warn(s"Exception happened when trying to get a new page, trying again:$e")
+        if page != null then
+          page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_page_${Random.nextInt()}.png")))
+          page.close()
 
-        page.close()
+        context.log.warn(s"Exception happened when trying to get a new page, trying again:$e")
         openChartAndGoToSettings(chartId)
     }
 
@@ -256,9 +291,11 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
       page.navigate(s"https://www.tradingview.com/chart/$chartId/")
       page.getByText("Deep Backtesting").waitFor()
+//      page.getByText("Net Profit").waitFor()
 
       page.getByRole(AriaRole.SWITCH).click()
 
+      page.locator(strategyNameXpath).hover()
       page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
       page.getByText("Core Boilerplate Version").waitFor()
     }

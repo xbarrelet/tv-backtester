@@ -1,57 +1,68 @@
 package ch.xavier
 package backtesting.actors.main
 
-import Application.{executionContext, system}
-import backtesting.actors.takeProfit.{MultiTPBacktesterActor, SLAndTPTrailingBacktesterActor, TPLongBacktesterActor, TPShortBacktesterActor}
-import backtesting.{BacktestChartResponseMessage, BacktestSpecificPartMessage, Message}
+import backtesting.Message
+import backtesting.actors.AbstractMainOptimizerActor
+import backtesting.parameters.StrategyParameter
+import backtesting.parameters.TVLocator.*
 
-import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior}
-import akka.stream.scaladsl.{Sink, Source}
-import akka.util.Timeout
+import akka.actor.typed.Behavior
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success}
+import scala.collection.mutable.ListBuffer
 
 object TPOptimizerActor {
   def apply(): Behavior[Message] =
     Behaviors.setup(context => new TPOptimizerActor(context))
 }
 
-private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractBehavior(context) {
-  implicit val timeout: Timeout = 7200.seconds
-  private val logger: Logger = LoggerFactory.getLogger("TPOptimizerActor")
+private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractMainOptimizerActor(context) {
+  val logger: Logger = LoggerFactory.getLogger("TPOptimizerActor")
 
 
-  override def onMessage(message: Message): Behavior[Message] =
-    message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val backtesters: List[ActorRef[Message]] = List(
-          context.spawn(TPShortBacktesterActor(), "tp-short-backtester"),
-          context.spawn(TPLongBacktesterActor(), "tp-long-backtester"),
-          //          context.spawn(MultiTPBacktesterActor(), "multi-tp-backtester"),
-          context.spawn(SLAndTPTrailingBacktesterActor(), "sl-tp-trailing-backtester")
-        )
+  val parametersLists: List[List[List[StrategyParameter]]] = List(
+    //TODO: WRONG! You should test both sides with fixed percents and then check if the combined best parameters for both sides is better than the combined best parameters of the R:R.
 
-        Source(backtesters)
-          .mapAsync(1)(backtesterRef => {
-            backtesterRef ? (myRef => BacktestSpecificPartMessage(myRef, chartId))
-          })
-          .runWith(Sink.last)
-          .onComplete {
-            case Success(result) =>
-              logger.info("TP Optimization now complete.")
-              mainActorRef ! BacktestChartResponseMessage()
-              Behaviors.stopped
+    parametersFactory.getParameters(TP_SHORT_RR, 0.1, 7.5, step = 0.1, initialParameter = StrategyParameter(TP_TYPE, "R:R")),
+    parametersFactory.getParameters(TP_SHORT_FIXED_PERCENTS, 0.1, 15.0, step = 0.1, initialParameter = StrategyParameter(TP_TYPE, "Fixed Percent")),
 
-            case Failure(e) =>
-              logger.error("Exception received during TP optimization:" + e)
-          }
+    parametersFactory.getParameters(TP_LONG_RR, 0.1, 7.5, step = 0.1, initialParameter = StrategyParameter(TP_TYPE, "R:R")),
+    parametersFactory.getParameters(TP_LONG_FIXED_PERCENTS, 0.1, 15.0, step = 0.1, initialParameter = StrategyParameter(TP_TYPE, "Fixed Percent")),
 
-      case _ =>
-        context.log.warn("Received unknown message in TPOptimizerActor of type: " + message.getClass)
+    addParametersForSLTrailing()
+  )
 
-    this
+
+  private def addParametersForSLTrailing(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+
+    parametersList.addOne(List(
+      StrategyParameter(USE_TRAILING_LOSS, "false"),
+      StrategyParameter(USE_TRAILING_TP, "false"))
+    )
+
+    List("Instant", "After Hit TP 1").map(condition => {
+      //    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
+      (1 to 3).map(multiplier => {
+        (1 to 75).map(threshold => {
+          parametersList.addOne(List(
+            StrategyParameter(USE_TRAILING_LOSS, "true"),
+            StrategyParameter(USE_TRAILING_TP, "false"),
+            StrategyParameter(TRAILING_ACTIVATION, condition),
+            StrategyParameter(TRAILING_LOSS_THRESHOLD, (threshold / 10.0).toString),
+            StrategyParameter(TRAILING_LOSS_ATR_MULTIPLIER, multiplier.toString)
+          ))
+          parametersList.addOne(List(
+            StrategyParameter(USE_TRAILING_LOSS, "true"),
+            StrategyParameter(USE_TRAILING_TP, "true"),
+            StrategyParameter(TRAILING_ACTIVATION, condition),
+            StrategyParameter(TRAILING_LOSS_THRESHOLD, (threshold / 10.0).toString),
+            StrategyParameter(TRAILING_LOSS_ATR_MULTIPLIER, multiplier.toString)
+          ))
+        })
+      })
+    })
+
+    parametersList.toList
 }

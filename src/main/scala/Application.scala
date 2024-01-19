@@ -1,6 +1,7 @@
 package ch.xavier
 
-import backtesting.{MainBacktesterActor, Message, StartBacktesting}
+import backtesting.actors.ChartBacktesterActor
+import backtesting.{Message, StartBacktesting}
 
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
@@ -21,8 +22,9 @@ object Main {
 
 private class Main(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   context.log.info("The backtester is starting")
+  context.log.info("")
 
-  private val mainBacktesterRef: ActorRef[Message] = context.spawn(MainBacktesterActor(), "main-backtester-actor")
+  private val mainBacktesterRef: ActorRef[Message] = context.spawn(ChartBacktesterActor(), "main-backtester-actor")
 
   mainBacktesterRef ! StartBacktesting()
 
