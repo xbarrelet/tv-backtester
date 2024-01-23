@@ -1,41 +1,48 @@
 package ch.xavier
-package backtesting.actors.takeProfit
+package backtesting.actors.main
 
-import ch.xavier.backtesting.parameters.TVLocators.*
-import backtesting.actors.AbstractBacktesterBehavior
+import backtesting.Message
+import backtesting.actors.AbstractMainOptimizerActor
 import backtesting.parameters.StrategyParameter
-import backtesting.{BacktestSpecificPartMessage, Message}
+import backtesting.parameters.TVLocator.*
 
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ListBuffer
 
-object SLAndTPTrailingBacktesterActor {
+object LeverageOptimizerActor {
   def apply(): Behavior[Message] =
-    Behaviors.setup(context => new SLAndTPTrailingBacktesterActor(context))
+    Behaviors.setup(context => new LeverageOptimizerActor(context))
 }
 
-private class SLAndTPTrailingBacktesterActor(context: ActorContext[Message]) extends AbstractBacktesterBehavior(context) {
-  val logger: Logger = LoggerFactory.getLogger("SLAndTPTrailingBacktesterActor")
+
+private class LeverageOptimizerActor(context: ActorContext[Message]) extends AbstractMainOptimizerActor(context) {
+  val logger: Logger = LoggerFactory.getLogger("LeverageOptimizerActor")
+  evaluationParameter = "netProfit"
+  
+  
+  val parametersLists: List[List[List[StrategyParameter]]] = List(
+//    addParametersForSLTrailing(),
+    addParametersForLeverage()
+  )
 
 
-  override def onMessage(message: Message): Behavior[Message] =
-    message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val parametersTuplesToTest: List[List[StrategyParameter]] =
-          addParametersForSLTrailing()
+  private def addParametersForLeverage(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-        context.log.info(s"Testing ${parametersTuplesToTest.size} different parameters combinations for SL and TP trailing optimization")
+    parametersList.addOne(List(StrategyParameter(USE_DYNAMIC_LEVERAGE, "true")))
 
-        optimizeParameters(parametersTuplesToTest, mainActorRef, chartId)
-      case _ =>
-        context.log.warn("Received unknown message in SLAndTPTrailingBacktesterActor of type: " + message.getClass)
+    (1 to 50).map(leverage => {
+      parametersList.addOne(List(
+        StrategyParameter(USE_DYNAMIC_LEVERAGE, "false"),
+        StrategyParameter(LEVERAGE_PERCENT, leverage.toString)))
+    })
 
-    this
+    parametersList.toList
 
-
+  
   private def addParametersForSLTrailing(): List[List[StrategyParameter]] =
     val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
@@ -45,7 +52,7 @@ private class SLAndTPTrailingBacktesterActor(context: ActorContext[Message]) ext
     )
 
     List("Instant", "After Hit TP 1").map(condition => {
-//    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
+      //    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
       (1 to 3).map(multiplier => {
         (1 to 75).map(threshold => {
           parametersList.addOne(List(
@@ -65,7 +72,6 @@ private class SLAndTPTrailingBacktesterActor(context: ActorContext[Message]) ext
         })
       })
     })
-
 
     parametersList.toList
 }

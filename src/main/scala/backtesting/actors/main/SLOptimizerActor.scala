@@ -1,56 +1,28 @@
 package ch.xavier
 package backtesting.actors.main
 
-import Application.{executionContext, system}
-import backtesting.actors.stopLoss.{SLLongBacktesterActor, SLShortBacktesterActor}
-import backtesting.actors.takeProfit.SLAndTPTrailingBacktesterActor
-import backtesting.{BacktestChartResponseMessage, BacktestSpecificPartMessage, Message}
+import backtesting.Message
+import backtesting.actors.AbstractMainOptimizerActor
+import backtesting.parameters.StrategyParameter
+import backtesting.parameters.TVLocator.{SL_ATR_MULTIPLIER, SL_ATR_SWING_LOOKBACK, SL_LONG_FIXED_PERCENTS, SL_SHORT_FIXED_PERCENTS, SL_TYPE}
 
-import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior}
-import akka.stream.scaladsl.{Sink, Source}
-import akka.util.Timeout
+import akka.actor.typed.Behavior
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.slf4j.{Logger, LoggerFactory}
-
-import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success}
 
 object SLOptimizerActor {
   def apply(): Behavior[Message] =
     Behaviors.setup(context => new SLOptimizerActor(context))
 }
 
-private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractBehavior(context) {
-  implicit val timeout: Timeout = 7200.seconds
-  private val logger: Logger = LoggerFactory.getLogger("SLOptimizerActor")
+private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractMainOptimizerActor(context) {
+  val logger: Logger = LoggerFactory.getLogger("SLOptimizerActor")
 
+  val parametersLists: List[List[List[StrategyParameter]]] = List(
+    parametersFactory.getParameters(SL_SHORT_FIXED_PERCENTS, 0.1, 15.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "Fixed Percent")),
+    parametersFactory.getParameters(SL_LONG_FIXED_PERCENTS, 0.1, 15.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "Fixed Percent")),
 
-  override def onMessage(message: Message): Behavior[Message] =
-    message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val backtesters: List[ActorRef[Message]] = List(
-          context.spawn(SLShortBacktesterActor(), "sl-short-backtester"),
-          context.spawn(SLLongBacktesterActor(), "sl-long-backtester")
-        )
-
-        Source(backtesters)
-          .mapAsync(1)(backtesterRef => {
-            backtesterRef ? (myRef => BacktestSpecificPartMessage(myRef, chartId))
-          })
-          .runWith(Sink.last)
-          .onComplete {
-            case Success(result) =>
-              logger.info("SL optimization now complete.")
-              mainActorRef ! BacktestChartResponseMessage()
-              Behaviors.stopped
-
-            case Failure(e) =>
-              logger.error("Exception received during SL optimization:" + e)
-          }
-
-      case _ =>
-        context.log.warn("Received unknown message in SLOptimizerActor of type: " + message.getClass)
-
-    this
+    parametersFactory.getParameters(SL_ATR_MULTIPLIER, 0.1, 20.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "ATR")),
+    parametersFactory.getParameters(SL_ATR_SWING_LOOKBACK, 0.1, 20.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "ATR")),
+  )
 }

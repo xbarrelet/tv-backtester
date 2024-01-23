@@ -15,7 +15,7 @@
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/backtester_${timestamp}.log</file>
         <encoder>
-            <pattern>[%date{ISO8601}] [%level] [%thread] - %msg%n</pattern>
+            <pattern>[%date{ISO8601}] [%level] - %msg%n</pattern>
 <!--            <pattern>[%date{ISO8601}] [%level] [%logger] [%marker] [%thread] - %msg MDC: {%mdc}%n</pattern>-->
         </encoder>
     </appender>

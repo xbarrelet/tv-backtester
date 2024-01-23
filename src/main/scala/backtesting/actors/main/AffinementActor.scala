@@ -1,59 +1,104 @@
 package ch.xavier
 package backtesting.actors.main
 
-import Application.{executionContext, system}
-import backtesting.actors.affinement.{HurstExponentBacktesterActor, MasAffinementBacktesterActor, RangeFilterBacktesterActor, VWAPCrossoverBacktesterActor}
-import backtesting.actors.takeProfit.TPLeverageBacktesterActor
-import backtesting.{BacktestChartResponseMessage, BacktestSpecificPartMessage, Message}
+import backtesting.Message
+import backtesting.actors.AbstractMainOptimizerActor
+import backtesting.parameters.StrategyParameter
+import backtesting.parameters.TVLocator.*
 
-import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior}
-import akka.stream.scaladsl.{Sink, Source}
-import akka.util.Timeout
+import akka.actor.typed.Behavior
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success}
+import scala.collection.mutable.ListBuffer
 
 object AffinementActor {
   def apply(): Behavior[Message] =
     Behaviors.setup(context => new AffinementActor(context))
 }
 
-private class AffinementActor(context: ActorContext[Message]) extends AbstractBehavior(context) {
-  implicit val timeout: Timeout = 7200.seconds
-  private val logger: Logger = LoggerFactory.getLogger("AffinementActor")
+private class AffinementActor(context: ActorContext[Message]) extends AbstractMainOptimizerActor(context) {
+  val logger: Logger = LoggerFactory.getLogger("AffinementActor")
+  evaluationParameter = "profitFactor"
+
+  
+  val parametersLists: List[List[List[StrategyParameter]]] = List(
+    addParametersForFixedMAsOptions(),
+    addParametersForHurstExponent(),
+    addParametersForRangeFiltering(),
+    addParametersForVWAPCrossover()
+  )
 
 
-  override def onMessage(message: Message): Behavior[Message] =
-    message match
-      case BacktestSpecificPartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
-        val backtesters: List[ActorRef[Message]] = List(
-          context.spawn(MasAffinementBacktesterActor(), "ma-affinement-backtester"),
-          context.spawn(HurstExponentBacktesterActor(), "hurst-exponent-backtester"),
-          context.spawn(RangeFilterBacktesterActor(), "range-filtering-backtester"),
-          context.spawn(VWAPCrossoverBacktesterActor(), "vwap-crossover-backtester"),
-          context.spawn(TPLeverageBacktesterActor(), "tp-leverage-backtester")
-        )
+  private def addParametersForFixedMAsOptions(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-        Source(backtesters)
-          .mapAsync(1)(backtesterRef => {
-            backtesterRef ? (myRef => BacktestSpecificPartMessage(myRef, chartId))
-          })
-          .runWith(Sink.last)
-          .onComplete {
-            case Success(result) =>
-              logger.info("Affinement now complete.")
-              mainActorRef ! BacktestChartResponseMessage()
-              Behaviors.stopped
+    List(
+      "Off",
+      "Close over/under MA5",
+      "Strict Close over/under MA5",
+      "5 MA (Ordered)",
+      "3 MA (Ordered)",
+      "3 MA (Strict)",
+      "3 MA (Cross)"
+    ).map(masOption => {
+      parametersList.addOne(List(
+        StrategyParameter(MA_TYPE, masOption)
+      ))
+    })
 
-            case Failure(e) =>
-              logger.error("Exception received during affinement:" + e)
-          }
+    parametersList.toList
 
-      case _ =>
-        context.log.warn("Received unknown message in AffinementActor of type: " + message.getClass)
+  private def addParametersForHurstExponent(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    this
+    parametersList.addOne(List(
+      StrategyParameter(USE_HURST_EXP, "false")
+    ))
+
+    (1 to 100).map(i => {
+      parametersList.addOne(List(
+        StrategyParameter(USE_HURST_EXP, "true"),
+        StrategyParameter(HURST_EXP_LENGTH, i.toString),
+        StrategyParameter(USE_HURST_EXP_MTF, "false")
+      ))
+      parametersList.addOne(List(
+        StrategyParameter(USE_HURST_EXP, "true"),
+        StrategyParameter(HURST_EXP_LENGTH, i.toString),
+        StrategyParameter(USE_HURST_EXP_MTF, "true")
+      ))
+    })
+
+    parametersList.toList
+
+  private def addParametersForRangeFiltering(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+
+    parametersList.addOne(List(StrategyParameter(USE_RANGE_FILTER, "false")))
+
+    (5 to 75 by 5).map(multiplier => {
+      (5 to 150 by 5).map(period => {
+        parametersList.addOne(List(
+          StrategyParameter(USE_RANGE_FILTER, "true"),
+          StrategyParameter(RANGE_FILTER_PERIOD, period.toString),
+          StrategyParameter(RANGE_FILTER_MULTIPLIER, (multiplier / 10.0).toString)
+        ))
+      })
+    })
+
+    parametersList.toList
+
+  private def addParametersForVWAPCrossover(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+
+    parametersList.addOne(List(StrategyParameter(USE_VWAP_CROSSOVER, "false")))
+
+    (5 to 50).map(length => {
+      parametersList.addOne(List(
+        StrategyParameter(USE_VWAP_CROSSOVER, "true"),
+        StrategyParameter(VWAP_LENGTH, length.toString),
+      ))
+    })
+
+    parametersList.toList
 }
