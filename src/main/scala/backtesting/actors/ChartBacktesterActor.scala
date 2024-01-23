@@ -40,14 +40,13 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
         fillConfigFromChart(chartId)
         //        deleteAllScreenshotsFromLastRun() -> class sun.nio.fs.WindowsPath$WindowsPathWithAttributes cannot be cast to class java.io.File (sun.nio.fs.WindowsPath$WindowsPathWithAttributes and java.io.File are in module java.base of loader 'bootstrap')
 
-
         val backtesters: List[ActorRef[Message]] = List(
           //          context.spawn(StratOptimizerActor(), "strat-optimizer-actor"),
           context.spawn(SLOptimizerActor(), "sl-optimizer-actor"),
           context.spawn(TPOptimizerActor(), "tp-optimizer-actor"),
           context.spawn(AffinementActor(), "affinement-actor"),
           context.spawn(LeverageOptimizerActor(), "leverage-optimizer-actor"),
-          //          context.spawn(TestParametersActor(), "test-parameters-actor")
+//          context.spawn(TestParametersActor(), "test-parameters-actor")
         )
 
         context.log.info(s"The optimization is starting with the backtesters: ${backtesters.map(_.path.name.split("-actor").head).mkString(", ")}")
@@ -79,7 +78,7 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     if Files.exists(screenshotsToDeletePath) then
       Files.list(screenshotsToDeletePath).toArray.map(_.asInstanceOf[File]).map(file => Files.delete(file.toPath))
   }
-
+  
   private def fillConfigFromChart(chartId: String): Unit =
     val playwright: Playwright = Playwright.create()
     val browser: Browser = playwright.chromium().launch()
@@ -96,9 +95,10 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
 
     config.botifyVersion = getBotifyVersion(page)
     context.log.info("Botify version detected:" + config.botifyVersion)
-
+    
     config.distanceBetweenLabelAndField = getDistanceBetweenLabelsAndFields(page)
     context.log.info("Distance between labels and fields detected:" + config.distanceBetweenLabelAndField)
+
     context.log.info("")
 
     page.close()
@@ -120,7 +120,7 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
 
     distance
   }
-
+  
   private def getCurrentResult(page: Page): BacktestingResultMessage = {
     page.getByRole(AriaRole.SWITCH).click()
     page.getByText("Net Profit").waitFor()

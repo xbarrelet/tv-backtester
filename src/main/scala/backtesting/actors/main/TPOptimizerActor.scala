@@ -29,5 +29,39 @@ private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractM
 
     parametersFactory.getParameters(TP_LONG_RR, 0.1, 7.5, step = 0.1, initialParameter = StrategyParameter(TP_TYPE, "R:R")),
     parametersFactory.getParameters(TP_LONG_FIXED_PERCENTS, 0.1, 15.0, step = 0.1, initialParameter = StrategyParameter(TP_TYPE, "Fixed Percent")),
+    addParametersForSLTrailing()
   )
+
+
+  private def addParametersForSLTrailing(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+
+    parametersList.addOne(List(
+      StrategyParameter(USE_TRAILING_LOSS, "false"),
+      StrategyParameter(USE_TRAILING_TP, "false"))
+    )
+
+    List("Instant", "After Hit TP 1").map(condition => {
+      //    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
+      (1 to 3).map(multiplier => {
+        (1 to 75).map(threshold => {
+          parametersList.addOne(List(
+            StrategyParameter(USE_TRAILING_LOSS, "true"),
+            StrategyParameter(USE_TRAILING_TP, "false"),
+            StrategyParameter(TRAILING_ACTIVATION, condition),
+            StrategyParameter(TRAILING_LOSS_THRESHOLD, (threshold / 10.0).toString),
+            StrategyParameter(TRAILING_LOSS_ATR_MULTIPLIER, multiplier.toString)
+          ))
+          parametersList.addOne(List(
+            StrategyParameter(USE_TRAILING_LOSS, "true"),
+            StrategyParameter(USE_TRAILING_TP, "true"),
+            StrategyParameter(TRAILING_ACTIVATION, condition),
+            StrategyParameter(TRAILING_LOSS_THRESHOLD, (threshold / 10.0).toString),
+            StrategyParameter(TRAILING_LOSS_ATR_MULTIPLIER, multiplier.toString)
+          ))
+        })
+      })
+    })
+
+    parametersList.toList
 }

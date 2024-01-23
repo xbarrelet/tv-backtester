@@ -71,6 +71,7 @@ private class ParametersGroupBacktesterActor(context: ActorContext[Message]) ext
 
                 else
                   sortedResults = results.sortBy(p => (p.netProfitsPercentage, p.profitabilityPercentage)).reverse.toList
+
                   if sortedResults.head.netProfitsPercentage > config.bestResult.netProfitsPercentage then
                     isNewResultBetterThanCurrentBest = true
 
@@ -90,6 +91,7 @@ private class ParametersGroupBacktesterActor(context: ActorContext[Message]) ext
                 else
                   logger.info("No better result detected")
                   logger.info("")
+
                   mainActorRef ! sortedResults.head
 
             case Failure(e) =>

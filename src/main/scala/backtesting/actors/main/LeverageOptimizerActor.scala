@@ -22,9 +22,9 @@ private class LeverageOptimizerActor(context: ActorContext[Message]) extends Abs
   val logger: Logger = LoggerFactory.getLogger("LeverageOptimizerActor")
   evaluationParameter = "netProfit"
   
-  
+
   val parametersLists: List[List[List[StrategyParameter]]] = List(
-//    addParametersForSLTrailing(),
+    //    addParametersForSLTrailing(),
     addParametersForLeverage()
   )
 
