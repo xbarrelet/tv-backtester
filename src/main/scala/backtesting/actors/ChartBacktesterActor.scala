@@ -3,7 +3,7 @@ package backtesting.actors
 
 import Application.{executionContext, system}
 import backtesting.actors.main.{AffinementActor, LeverageOptimizerActor, SLOptimizerActor, TPOptimizerActor}
-import backtesting.parameters.TVLocator.TEST.*
+import backtesting.parameters.TVLocator.*
 import backtesting.{BacktestingResultMessage, Message, OptimizePartMessage, StartBacktesting}
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
@@ -42,11 +42,10 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
 
         val backtesters: List[ActorRef[Message]] = List(
           //          context.spawn(StratOptimizerActor(), "strat-optimizer-actor"),
-//          context.spawn(SLOptimizerActor(), "sl-optimizer-actor"),
-//          context.spawn(TPOptimizerActor(), "tp-optimizer-actor"),
+          context.spawn(SLOptimizerActor(), "sl-optimizer-actor"),
+          context.spawn(TPOptimizerActor(), "tp-optimizer-actor"),
           context.spawn(AffinementActor(), "affinement-actor"),
-          context.spawn(LeverageOptimizerActor(), "leverage-optimizer-actor"),
-//          context.spawn(TestParametersActor(), "test-parameters-actor")
+          context.spawn(LeverageOptimizerActor(), "leverage-optimizer-actor")
         )
 
         //TODO: Fix getClosestCheckbox, for now it's on the RSI checkbox but it doesn't make a lot of sense

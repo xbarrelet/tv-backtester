@@ -2,7 +2,7 @@ package ch.xavier
 package backtesting.parameters
 
 enum TYPE {
-  case INPUT, CHECKBOX, OPTION, TEST
+  case INPUT, CHECKBOX, OPTION
 }
 
 enum TVLocator(locatorType: TYPE, index: Int, label: String = "") {
@@ -12,7 +12,6 @@ enum TVLocator(locatorType: TYPE, index: Int, label: String = "") {
   def getLabel: String = label
 
   case EMPTY extends TVLocator(null, 0, "")
-  case TEST extends TVLocator(TYPE.TEST, 0, "")
 
   // TP
   case TP_TYPE extends TVLocator(TYPE.OPTION, 83, "Type of Take Profit")
@@ -109,6 +108,10 @@ enum TVLocator(locatorType: TYPE, index: Int, label: String = "") {
   case VWAP_LENGTH extends TVLocator(TYPE.INPUT, -25, "Vwap Length")
 
 
+
+}
+
+object TVLocator {
   // BACKTESTING RESULTS XPATHS
   val netProfitsPercentageValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[1]/div[2]/div[2]"
   val closedTradesNumberXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[2]/div[2]/div[1]"

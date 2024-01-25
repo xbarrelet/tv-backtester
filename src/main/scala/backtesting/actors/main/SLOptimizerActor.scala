@@ -4,7 +4,7 @@ package backtesting.actors.main
 import backtesting.Message
 import backtesting.actors.AbstractMainOptimizerActor
 import backtesting.parameters.StrategyParameter
-import backtesting.parameters.TVLocator.{SL_ATR_MULTIPLIER, SL_LONG_FIXED_PERCENTS, SL_SHORT_FIXED_PERCENTS, SL_TYPE, SL_ATR_SWING_LOOKBACK}
+import backtesting.parameters.TVLocator.*
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}

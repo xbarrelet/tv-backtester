@@ -2,6 +2,7 @@ package ch.xavier
 package backtesting.actors
 
 import backtesting.*
+import backtesting.parameters.TVLocator.*
 import backtesting.parameters.TVLocator.MA_TYPE.*
 import backtesting.parameters.{StrategyParameter, TYPE}
 
