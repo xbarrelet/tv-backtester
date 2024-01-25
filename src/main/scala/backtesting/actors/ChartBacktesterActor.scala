@@ -42,12 +42,14 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
 
         val backtesters: List[ActorRef[Message]] = List(
           //          context.spawn(StratOptimizerActor(), "strat-optimizer-actor"),
-          context.spawn(SLOptimizerActor(), "sl-optimizer-actor"),
-          context.spawn(TPOptimizerActor(), "tp-optimizer-actor"),
+//          context.spawn(SLOptimizerActor(), "sl-optimizer-actor"),
+//          context.spawn(TPOptimizerActor(), "tp-optimizer-actor"),
           context.spawn(AffinementActor(), "affinement-actor"),
           context.spawn(LeverageOptimizerActor(), "leverage-optimizer-actor"),
 //          context.spawn(TestParametersActor(), "test-parameters-actor")
         )
+
+        //TODO: Fix getClosestCheckbox, for now it's on the RSI checkbox but it doesn't make a lot of sense
 
         context.log.info(s"The optimization is starting with the backtesters: ${backtesters.map(_.path.name.split("-actor").head).mkString(", ")}")
         context.log.info("")
@@ -78,7 +80,7 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     if Files.exists(screenshotsToDeletePath) then
       Files.list(screenshotsToDeletePath).toArray.map(_.asInstanceOf[File]).map(file => Files.delete(file.toPath))
   }
-  
+
   private def fillConfigFromChart(chartId: String): Unit =
     val playwright: Playwright = Playwright.create()
     val browser: Browser = playwright.chromium().launch()
@@ -91,11 +93,11 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     config.strategyName = getStrategyNameUsedInChart(page)
     context.log.info("Strategy name detected:" + config.strategyName)
 
-    config.bestResult = getCurrentResult(page)
+//    config.bestResult = getCurrentResult(page)
 
     config.botifyVersion = getBotifyVersion(page)
     context.log.info("Botify version detected:" + config.botifyVersion)
-    
+
     config.distanceBetweenLabelAndField = getDistanceBetweenLabelsAndFields(page)
     context.log.info("Distance between labels and fields detected:" + config.distanceBetweenLabelAndField)
 
@@ -120,7 +122,7 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
 
     distance
   }
-  
+
   private def getCurrentResult(page: Page): BacktestingResultMessage = {
     page.getByRole(AriaRole.SWITCH).click()
     page.getByText("Net Profit").waitFor()

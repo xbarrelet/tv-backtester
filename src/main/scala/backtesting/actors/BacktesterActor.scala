@@ -16,6 +16,7 @@ import java.util
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.*
 import scala.util.Random
+import scala.util.control.Breaks.{break, breakable}
 
 object BacktesterActor {
   def apply(): Behavior[Message] =
@@ -155,31 +156,40 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     for parameterToTest <- parametersToTest do
       val locatorType: TYPE = parameterToTest.tvLocator.getType
 //      context.log.info(s"Entering for locator type:$locatorType value:${parameterToTest.value}")
+      breakable {
+        if locatorType.eq(TYPE.CHECKBOX) then
+          val shouldBeClicked = parameterToTest.value.eq("true")
+          val checkboxLocator: Option[Locator] = getClosestCheckboxLocator(page, parameterToTest)
+          if checkboxLocator.isEmpty then
+            break
 
-      if locatorType.eq(TYPE.CHECKBOX) then
-        val shouldBeClicked = parameterToTest.value.eq("true")
-        val checkboxLocator = getClosestCheckboxLocator(page, parameterToTest)
+          if checkboxLocator.get.isChecked != shouldBeClicked then
+            val checkboxBoundingBox = checkboxLocator.get.boundingBox()
+            page.mouse().click(checkboxBoundingBox.x + 1, checkboxBoundingBox.y + 1)
+            page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/checkbox_${parameterToTest.tvLocator.toString}.png")))
 
-        if checkboxLocator.isChecked != shouldBeClicked then
+        else if locatorType.eq(TYPE.INPUT) then
           clickOnElement(page, parameterToTest)
-        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/checkbox_${parameterToTest.tvLocator.toString}.png")))
+          page.keyboard().insertText(parameterToTest.value)
+          page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/input_${parameterToTest.tvLocator.toString}.png")))
 
-      else if locatorType.eq(TYPE.INPUT) then
-        clickOnElement(page, parameterToTest)
-        page.keyboard().insertText(parameterToTest.value)
-        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/input_${parameterToTest.tvLocator.toString}.png")))
-
-      else if locatorType.eq(TYPE.OPTION) then
-        clickOnElement(page, parameterToTest)
-        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/option_${parameterToTest.tvLocator.toString}.png")))
-        page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
+        else if locatorType.eq(TYPE.OPTION) then
+          clickOnElement(page, parameterToTest)
+          page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/option_${parameterToTest.tvLocator.toString}.png")))
+          page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
+    }
   }
 
-  private def getClosestCheckboxLocator(page: Page, parameterToTest: StrategyParameter): Locator =
+  private def getClosestCheckboxLocator(page: Page, parameterToTest: StrategyParameter): Option[Locator] =
     val label = parameterToTest.tvLocator.getLabel
-    val labelLocator = page.getByText(label, Page.GetByTextOptions().setExact(true)).first()
-    val labelBoundingBox: BoundingBox = labelLocator.boundingBox()
+    val labelLocators = page.getByText(label, Page.GetByTextOptions().setExact(true)).all()
+
+    if labelLocators.size() == 0 then
+      return Option.empty
+
+    val labelLocator = labelLocators.get(0)
     labelLocator.scrollIntoViewIfNeeded()
+    val labelBoundingBox: BoundingBox = labelLocator.boundingBox()
 
     var closestCheckbox: Locator = null
     var closestYDistance: Double = 9999
@@ -187,11 +197,12 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     for checkbox <- page.getByRole(AriaRole.CHECKBOX).all().asScala do
       val checkboxBoundingBox: BoundingBox = checkbox.boundingBox()
 
-      if closestYDistance > Math.abs(checkboxBoundingBox.y - labelBoundingBox.y) then
+      if closestYDistance >= Math.abs(checkboxBoundingBox.y - labelBoundingBox.y) then
         closestYDistance = Math.abs(checkboxBoundingBox.y - labelBoundingBox.y)
         closestCheckbox = checkbox
 
-    closestCheckbox
+    closestCheckbox.scrollIntoViewIfNeeded()
+    Some(closestCheckbox)
 
 
   private def clickOnElement(page: Page, parameterToTest: StrategyParameter): Unit = {
@@ -207,8 +218,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       page.mouse().click(labelBoundingBox.x + config.distanceBetweenLabelAndField, labelBoundingBox.y + (labelBoundingBox.height / 2.0))
 
     else if parameterToTest.tvLocator.getType.eq(TYPE.CHECKBOX) then
-      page.mouse().click(labelLocator.boundingBox().x - 10, labelBoundingBox.y -
-        (labelBoundingBox.height / 2.0))
+      page.mouse().click(labelLocator.boundingBox().x - 20, labelBoundingBox.y + (labelBoundingBox.height / 2.0))
   }
 
   private def testButtons(page: Page, buttons: util.List[Locator]): Unit = {
