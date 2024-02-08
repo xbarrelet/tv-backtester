@@ -41,16 +41,15 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
         //        deleteAllScreenshotsFromLastRun() -> class sun.nio.fs.WindowsPath$WindowsPathWithAttributes cannot be cast to class java.io.File (sun.nio.fs.WindowsPath$WindowsPathWithAttributes and java.io.File are in module java.base of loader 'bootstrap')
 
         val backtesters: List[ActorRef[Message]] = List(
-          //          context.spawn(StratOptimizerActor(), "strat-optimizer-actor"),
-          context.spawn(SLOptimizerActor(), "sl-optimizer-actor"),
-          context.spawn(TPOptimizerActor(), "tp-optimizer-actor"),
-          context.spawn(AffinementActor(), "affinement-actor"),
-          context.spawn(LeverageOptimizerActor(), "leverage-optimizer-actor")
+          //          context.spawn(StratOptimizerActor(), "strategy-optimization-actor"),
+          context.spawn(SLOptimizerActor(), "sl-optimization-actor"),
+          context.spawn(TPOptimizerActor(), "tp-optimization-actor"),
+          context.spawn(AffinementActor(), "affinement-optimization-actor"),
+          context.spawn(LeverageOptimizerActor(), "leverage-optimization-actor")
         )
 
-        //TODO: Fix getClosestCheckbox, for now it's on the RSI checkbox but it doesn't make a lot of sense
 
-        context.log.info(s"The optimization is starting with the backtesters: ${backtesters.map(_.path.name.split("-actor").head).mkString(", ")}")
+        context.log.info(s"The optimization is starting with the steps: ${backtesters.map(_.path.name.split("-actor").head).mkString(", ")}")
         context.log.info("")
 
         Source(backtesters)
@@ -61,10 +60,12 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
           .onComplete {
             case Success(result) =>
               logger.info(s"Optimisation now complete for chart $chartId, have a nice day :)")
+              system.terminate()
               System.exit(0)
 
             case Failure(e) =>
               logger.error("Exception received during global backtesting:" + e)
+              system.terminate()
               System.exit(0)
           }
 
@@ -92,10 +93,13 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     config.strategyName = getStrategyNameUsedInChart(page)
     context.log.info("Strategy name detected:" + config.strategyName)
 
-//    config.bestResult = getCurrentResult(page)
+    config.bestResult = getCurrentResult(page)
 
-    config.botifyVersion = getBotifyVersion(page)
-    context.log.info("Botify version detected:" + config.botifyVersion)
+    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
+    page.getByText("Core Boilerplate Version").waitFor()
+
+//    config.botifyVersion = getBotifyVersion(page)
+//    context.log.info("Botify version detected:" + config.botifyVersion)
 
     config.distanceBetweenLabelAndField = getDistanceBetweenLabelsAndFields(page)
     context.log.info("Distance between labels and fields detected:" + config.distanceBetweenLabelAndField)
@@ -158,10 +162,8 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     strategyName.split("by").head
 
 
-  private def getBotifyVersion(page: Page): String =
-    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
-    page.getByText("Core Boilerplate Version").waitFor()
 
+  private def getBotifyVersion(page: Page): String =
     page.locator(botifyVersionXPath).innerText().split("@").head.trim
 
   private def getNumberFromResultsFields(locator: Locator): Double =

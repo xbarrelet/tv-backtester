@@ -26,7 +26,8 @@ private class AffinementActor(context: ActorContext[Message]) extends AbstractMa
     addParametersForFixedMAsOptions(),
     addParametersForHurstExponent(),
     addParametersForRangeFiltering(),
-    addParametersForVWAPCrossover()
+    addParametersForVWAPCrossover(),
+//    addParametersForSLTrailing()
   )
 
 
@@ -98,6 +99,38 @@ private class AffinementActor(context: ActorContext[Message]) extends AbstractMa
         StrategyParameter(USE_VWAP_CROSSOVER, "true"),
         StrategyParameter(VWAP_LENGTH, length.toString),
       ))
+    })
+
+    parametersList.toList
+
+  private def addParametersForSLTrailing(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+
+    parametersList.addOne(List(
+      StrategyParameter(USE_TRAILING_LOSS, "false"),
+      StrategyParameter(USE_TRAILING_TP, "false"))
+    )
+
+    List("Instant", "After Hit TP 1").map(condition => {
+      //    List("Instant", "After Hit TP 1", "After Hit TP 2").map(condition => {
+      (1 to 3).map(multiplier => {
+        (1 to 75).map(threshold => {
+          parametersList.addOne(List(
+            StrategyParameter(USE_TRAILING_LOSS, "true"),
+            StrategyParameter(USE_TRAILING_TP, "false"),
+            StrategyParameter(TRAILING_ACTIVATION, condition),
+            StrategyParameter(TRAILING_LOSS_THRESHOLD, (threshold / 10.0).toString),
+            StrategyParameter(TRAILING_LOSS_ATR_MULTIPLIER, multiplier.toString)
+          ))
+          parametersList.addOne(List(
+            StrategyParameter(USE_TRAILING_LOSS, "true"),
+            StrategyParameter(USE_TRAILING_TP, "true"),
+            StrategyParameter(TRAILING_ACTIVATION, condition),
+            StrategyParameter(TRAILING_LOSS_THRESHOLD, (threshold / 10.0).toString),
+            StrategyParameter(TRAILING_LOSS_ATR_MULTIPLIER, multiplier.toString)
+          ))
+        })
+      })
     })
 
     parametersList.toList

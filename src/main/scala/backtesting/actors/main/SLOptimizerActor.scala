@@ -22,8 +22,7 @@ private class SLOptimizerActor(context: ActorContext[Message]) extends AbstractM
     parametersFactory.getParameters(SL_SHORT_FIXED_PERCENTS, 0.1, 15.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "Fixed Percent")),
     parametersFactory.getParameters(SL_LONG_FIXED_PERCENTS, 0.1, 15.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "Fixed Percent")),
 
-    parametersFactory.getParameters(SL_ATR_MULTIPLIER, 0.1, 20.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "ATR")),
-    parametersFactory.getParameters(SL_ATR_SWING_LOOKBACK, 0.1, 20.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "ATR")),
-    parametersFactory.getParameters(SL_ATR_MULTIPLIER, 0.1, 20.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "ATR"))
+    parametersFactory.getParameters(SL_ATR_MULTIPLIER, 0.1, 15.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "ATR")),
+    parametersFactory.getParameters(SL_ATR_SWING_LOOKBACK, 0.1, 15.0, step = 0.1, initialParameter = StrategyParameter(SL_TYPE, "ATR"))
   )
 }
