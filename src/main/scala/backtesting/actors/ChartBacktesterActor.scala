@@ -4,7 +4,7 @@ package backtesting.actors
 import Application.{executionContext, system}
 import backtesting.actors.main.{AffinementActor, LeverageOptimizerActor, SLOptimizerActor, TPOptimizerActor}
 import backtesting.parameters.TVLocator.*
-import backtesting.{BacktestingResultMessage, Message, OptimizePartMessage, StartBacktesting}
+import backtesting.*
 
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -33,8 +33,8 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
-      case StartBacktesting() =>
-        val chartId: String = sys.env("CHART_ID")
+      case BacktestChartMessage(chartToProcess: ChartToProcess, replyTo: ActorRef[Message]) =>
+        val chartId: String = chartToProcess.chart_id
         context.log.info(s"Getting config from chart $chartId")
 
         fillConfigFromChart(chartId)
@@ -47,8 +47,7 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
           context.spawn(AffinementActor(), "affinement-optimization-actor"),
           context.spawn(LeverageOptimizerActor(), "leverage-optimization-actor")
         )
-
-
+        
         context.log.info(s"The optimization is starting with the steps: ${backtesters.map(_.path.name.split("-actor").head).mkString(", ")}")
         context.log.info("")
 
@@ -59,14 +58,12 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
           .runWith(Sink.last)
           .onComplete {
             case Success(result) =>
-              logger.info(s"Optimisation now complete for chart $chartId, have a nice day :)")
-              system.terminate()
-              System.exit(0)
+              logger.info(s"Optimization now complete for chart $chartId")
+              replyTo ! ChartBacktestedMessage()
 
             case Failure(e) =>
-              logger.error("Exception received during global backtesting:" + e)
-              system.terminate()
-              System.exit(0)
+              logger.error(s"Exception received during optimization of chart $chartId" + e)
+              replyTo ! ChartBacktestedMessage()
           }
 
       case _ =>

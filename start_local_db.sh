@@ -1,0 +1,1 @@
+docker run --rm -d --name postgres_backtester -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres123 -e POSTGRES_DB=backtester -p 5432:5432 -v /data/backtester:/var/lib/postgresql/data postgres:12
