@@ -1,11 +1,10 @@
 package ch.xavier
 
+import Application.{executionContext, system}
 import backtesting.actors.ChartBacktesterActor
 import backtesting.{BacktestChartMessage, ChartBacktestedMessage, ChartToProcess, Message}
-import Application.{executionContext, system}
-import akka.actor.typed.scaladsl.AskPattern.schedulerFromActorSystem
 
-import akka.actor.typed.scaladsl.AskPattern.Askable
+import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.stream.scaladsl.{Sink, Source}
@@ -14,7 +13,6 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import doobie.*
 import doobie.implicits.*
-import doobie.util.transactor.Transactor.Aux
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.ExecutionContextExecutor
@@ -37,8 +35,8 @@ private class Main(context: ActorContext[Message]) extends AbstractBehavior[Mess
   context.log.info("The backtester is starting")
   context.log.info("")
 
-  implicit val timeout: Timeout = 24.hours
   private val logger: Logger = LoggerFactory.getLogger("Application")
+  implicit val timeout: Timeout = 24.hours
   private val mainBacktesterRef: ActorRef[Message] = context.spawn(ChartBacktesterActor(), "main-backtester-actor")
 
   
@@ -47,6 +45,10 @@ private class Main(context: ActorContext[Message]) extends AbstractBehavior[Mess
     .to[List]
     .transact(BacktesterConfig.transactor)
     .unsafeRunSync()
+
+  if chartsToProcess.isEmpty then
+    context.log.info("No chart to process, exiting")
+    exit()
 
   for chart <- chartsToProcess do {
     context.log.info(s"Processing chart ${chart.chart_id} with processing type ${chart.processing_type}")
@@ -58,18 +60,27 @@ private class Main(context: ActorContext[Message]) extends AbstractBehavior[Mess
     .mapAsync(1)(chartToProcess => {
       mainBacktesterRef ? (myRef => BacktestChartMessage(chartToProcess, myRef))
     })
+    .map(_.asInstanceOf[ChartBacktestedMessage])
+    .map(_.chartId)
+    .map(chartId => {
+      context.log.info(s"Chart $chartId has been backtested")
+      sql"delete from charts_to_process where chart_id = $chartId".update.run
+    })
     .runWith(Sink.last)
     .onComplete {
       case Success(result) =>
         logger.info(s"All charts have been backtested, have a nice day :)")
-        system.terminate()
-        System.exit(0)
+        exit()
 
       case Failure(e) =>
         logger.error(s"Exception received during global optimization:" + e)
-        system.terminate()
-        System.exit(0)
+        exit()
     }
+
+  private def exit(): Unit = {
+    system.terminate()
+    System.exit(0)
+  }
 
   override def onMessage(message: Message): Behavior[Message] =
     this

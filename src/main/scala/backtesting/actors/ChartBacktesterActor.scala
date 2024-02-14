@@ -59,11 +59,11 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
           .onComplete {
             case Success(result) =>
               logger.info(s"Optimization now complete for chart $chartId")
-              replyTo ! ChartBacktestedMessage()
+              replyTo ! ChartBacktestedMessage(chartId)
 
             case Failure(e) =>
               logger.error(s"Exception received during optimization of chart $chartId" + e)
-              replyTo ! ChartBacktestedMessage()
+              replyTo ! ChartBacktestedMessage(chartId)
           }
 
       case _ =>
