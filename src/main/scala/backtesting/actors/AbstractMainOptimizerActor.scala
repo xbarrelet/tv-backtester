@@ -43,6 +43,9 @@ abstract class AbstractMainOptimizerActor(context: ActorContext[Message]) extend
 
             case Failure(e) =>
               logger.error("Exception received during optimization:" + e)
+              mainActorRef ! BacktestChartResponseMessage()
+              optimizerActorRef ! CloseBacktesterMessage()
+              Behaviors.stopped
           }
 
       case _ =>

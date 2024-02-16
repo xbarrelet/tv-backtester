@@ -32,6 +32,10 @@ class BacktestersSpawnerActor(context: ActorContext[Message]) extends AbstractBe
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case OptimizeParametersMessage(parametersToTest: List[StrategyParameter], actorRef: ActorRef[Message], chartId: String) =>
+        while backtestersPool.isEmpty do
+          context.log.info("Backtesters not ready yet, waiting a little")
+          Thread.sleep(5000)
+          
         val ref: ActorRef[Message] = backtestersPool.dequeue()
 
         val response: Future[Message] = ref ? (myRef => OptimizeParametersMessage(parametersToTest, myRef, chartId))
