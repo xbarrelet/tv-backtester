@@ -48,3 +48,6 @@ logs/*
 screenshot.png
 *.txt
 *.png
+
+#NPM packages
+webapp/node_modules/
