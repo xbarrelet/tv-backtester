@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import './App.css';
+import './css/App.css';
 
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
@@ -11,7 +11,6 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 
 import background from './img/wallpaper.png';
-
 
 
 const App = () => {
@@ -30,10 +29,9 @@ const App = () => {
         style={{
           backgroundColor: "transparent",
         }}
-        sx={{color: "white",}}
       >
         <BottomNavigationAction label="Currently tested strats" icon={<RocketLaunchIcon />} />
-        <BottomNavigationAction label="Backtesting results" icon={<AccountBalanceIcon />} />
+        <BottomNavigationAction label="Backtesting results" icon={<AccountBalanceIcon />} sx={{color: "white",}}/>
       </BottomNavigation>
     </div>
   );
