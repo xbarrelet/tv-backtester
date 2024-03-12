@@ -51,3 +51,8 @@ screenshot.png
 
 #NPM packages
 webapp/node_modules/
+
+#Python server
+webapp-server/venv/
+webapp-server/__pycache__
+webapp-server/.env
