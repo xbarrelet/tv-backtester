@@ -106,9 +106,6 @@ enum TVLocator(locatorType: TYPE, index: Int, label: String = "") {
   // VWAP
   case USE_VWAP_CROSSOVER extends TVLocator(TYPE.CHECKBOX, -35, "Use vWap / ema")
   case VWAP_LENGTH extends TVLocator(TYPE.INPUT, -25, "Vwap Length")
-
-
-
 }
 
 object TVLocator {
@@ -120,6 +117,7 @@ object TVLocator {
   val maxDrawdownPercentValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[5]/div[2]/div[2]"
 
   // MISC XPATHS
-  val strategyNameXpath = "//html/body/div[2]/div[5]/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[1]/div[1]/div"
+  val strategyNameXpath = "//html/body/div[2]/div[5]/div[1]/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/div[2]/div[1]/div[1]/div[1]/div"
   val botifyVersionXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[3]/div/span/span[1]/span/span"
+  val deepBacktestingButtonXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[1]/div[1]/div[2]/div/span/input"
 }

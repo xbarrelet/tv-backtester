@@ -14,7 +14,7 @@ object BacktesterConfig {
 
     val transactor: Aux[IO, Unit] = Transactor.fromDriverManager[IO](
         driver = "org.postgresql.Driver",
-        url = "jdbc:postgresql://192.168.1.42/backtester",
+        url = "jdbc:postgresql://localhost/backtester",
         user = "postgres",
         password = "postgres123",
         logHandler = None

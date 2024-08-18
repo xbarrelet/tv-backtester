@@ -2,7 +2,7 @@ package ch.xavier
 package backtesting.actors
 
 import Application.{executionContext, system}
-import backtesting.actors.main.{AffinementActor, LeverageOptimizerActor, SLOptimizerActor, TPOptimizerActor}
+import backtesting.actors.main.{AffinementActor, LeverageOptimizerActor, SLOptimizerActor, StratOptimizerActor, TPOptimizerActor}
 import backtesting.parameters.TVLocator.*
 import backtesting.*
 
@@ -35,13 +35,13 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     message match
       case BacktestChartMessage(chartToProcess: ChartToProcess, replyTo: ActorRef[Message]) =>
         val chartId: String = chartToProcess.chart_id
-        context.log.info(s"Getting config from chart $chartId")
+        context.log.info(s"Getting config from chart $chartId\n")
 
         fillConfigFromChart(chartId)
         //        deleteAllScreenshotsFromLastRun() -> class sun.nio.fs.WindowsPath$WindowsPathWithAttributes cannot be cast to class java.io.File (sun.nio.fs.WindowsPath$WindowsPathWithAttributes and java.io.File are in module java.base of loader 'bootstrap')
 
         val backtesters: List[ActorRef[Message]] = List(
-          //          context.spawn(StratOptimizerActor(), "strategy-optimization-actor"),
+//            context.spawn(StratOptimizerActor(), "strategy-optimization-actor"),
           context.spawn(SLOptimizerActor(), "sl-optimization-actor"),
           context.spawn(TPOptimizerActor(), "tp-optimization-actor"),
           context.spawn(AffinementActor(), "affinement-optimization-actor"),
@@ -92,7 +92,7 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
 
     config.bestResult = getCurrentResult(page)
 
-    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
+    page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).last().click()
     page.getByText("Core Boilerplate Version").waitFor()
 
 //    config.botifyVersion = getBotifyVersion(page)
@@ -125,7 +125,7 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
 
   private def getCurrentResult(page: Page): BacktestingResultMessage = {
     page.getByRole(AriaRole.SWITCH).click()
-    page.getByText("Net Profit").waitFor()
+    page.getByText("Percent Profitable").waitFor()
 
     val netProfitsPercentage: Double = getNumberFromResultsFields(page.locator(netProfitsPercentageValueXPath))
     val closedTradesNumber: Int = getNumberFromResultsFields(page.locator(closedTradesNumberXPath)).toInt
@@ -133,8 +133,9 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     val profitFactor: Double = getNumberFromResultsFields(page.locator(profitFactorValueXPath))
     val maxDrawdownPercentage: Double = getNumberFromResultsFields(page.locator(maxDrawdownPercentValueXPath))
 
-    context.log.info(s"Current result: netProfitsPercentage: $netProfitsPercentage, closedTradesNumber: $closedTradesNumber, profitabilityPercentage: $profitabilityPercentage, profitFactor: $profitFactor, maxDrawdownPercentage: $maxDrawdownPercentage")
-
+    context.log.info(s"Current result: netProfitsPercentage: $netProfitsPercentage, closedTradesNumber: $closedTradesNumber, " +
+    s"profitabilityPercentage: $profitabilityPercentage, profitFactor: $profitFactor, maxDrawdownPercentage: $maxDrawdownPercentage")
+    
     BacktestingResultMessage(netProfitsPercentage, closedTradesNumber, profitabilityPercentage, profitFactor,
       maxDrawdownPercentage, List.empty)
   }
@@ -164,10 +165,10 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     page.locator(botifyVersionXPath).innerText().split("@").head.trim
 
   private def getNumberFromResultsFields(locator: Locator): Double =
-    val innerText = locator.innerText()
+    val doubleText = locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "")
 
-    if innerText.contains("−") then
-      0.0
+    if doubleText.contains("−") then
+      doubleText.replace("−", "").toDouble * -1
     else
-      locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "").toDouble
+      doubleText.toDouble
 }

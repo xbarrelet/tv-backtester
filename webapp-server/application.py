@@ -1,5 +1,4 @@
 import os
-from pprint import pprint
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify
@@ -17,24 +16,32 @@ def initialize_connectors():
         sub_accounts_counter += 7
         # sub_accounts_counter += 1
         connectors_from_env_variables.append(BybitConnector(os.getenv(f"SUB{sub_accounts_counter}_KEY"),
-                                                            os.getenv(f"SUB{sub_accounts_counter}_SECRET")))
-
+                                                            os.getenv(f"SUB{sub_accounts_counter}_SECRET"),
+                                                            os.getenv(f"SUB{sub_accounts_counter}_STRATEGY_NAME"),
+                                                            os.getenv(f"SUB{sub_accounts_counter}_SYMBOL")))
     return connectors_from_env_variables
 
 
 connectors: list[BybitConnector] = initialize_connectors()
 
-test_connector = connectors[0]
-pprint(test_connector.get_all_positions())
+app = Flask(__name__)
+
+# TODO: Check incubator for the best trades to follow!
 
 
-# app = Flask(__name__)
+@app.route("/positions")
+def get_all_positions():
+    positions = {}
+
+    for connector in connectors:
+        positions[connector.strategy_name] = {"positions": connector.get_all_positions()}
+
+        current_position = connector.get_current_position()
+        if current_position is not None:
+            positions[connector.strategy_name]["current_position"] = current_position
+
+    return jsonify(positions)
 
 
-# @app.route("/")
-# def hello_world():
-#     return jsonify({"message": "Hello, World!"})
-#
-#
-# if __name__ == "__main__":
-#     app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True)

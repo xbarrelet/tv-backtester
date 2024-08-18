@@ -42,7 +42,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         chartId = chartIdFromMessage
         resetPage(chartId)
 
-        //        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
+        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
 
         try {
           enterParameters(parametersToTest, page)
@@ -156,7 +156,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   private def enterParameters(parametersToTest: List[StrategyParameter], page: Page): Unit = {
     for parameterToTest <- parametersToTest do
       val locatorType: TYPE = parameterToTest.tvLocator.getType
-//      context.log.info(s"Entering for locator type:$locatorType value:${parameterToTest.value}")
+      //      context.log.info(s"Entering for locator type:$locatorType value:${parameterToTest.value}")
       breakable {
         if locatorType.eq(TYPE.CHECKBOX) then
           val shouldBeClicked = parameterToTest.value.eq("true")
@@ -178,7 +178,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
           clickOnElement(page, parameterToTest)
           page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/option_${parameterToTest.tvLocator.toString}.png")))
           page.getByRole(AriaRole.OPTION, new GetByRoleOptions().setName(parameterToTest.value).setExact(true)).click()
-    }
+      }
   }
 
   private def getClosestCheckboxLocator(page: Page, parameterToTest: StrategyParameter): Option[Locator] =
@@ -308,7 +308,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       page.getByRole(AriaRole.SWITCH).click()
 
       page.locator(strategyNameXpath).hover()
-      page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).click()
+      page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).last().click()
       page.getByText("Core Boilerplate Version").waitFor()
     }
     catch {

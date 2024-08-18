@@ -1,17 +1,23 @@
-import sys
+import time
 from pprint import pprint
 
 from pybit.unified_trading import HTTP
 
 
+def current_milli_time():
+    return round(time.time() * 1000)
+
+
 class BybitConnector:
-    def __init__(self, api_key, api_secret):
+    def __init__(self, api_key, api_secret, strategy_name, symbol):
         self.session = HTTP(
             testnet=False,
             api_key=api_key,
             api_secret=api_secret,
         )
-        print(f"connector created with key:{api_key}")
+        self.strategy_name = strategy_name
+        self.symbol = symbol if symbol is not None else "BTC"
+        print(f"connector created for strategy {strategy_name}")
 
     def get_available_funds(self):
         coin_balance = self.session.get_coin_balance(accountType='UNIFIED', coin='USDT')
@@ -20,30 +26,47 @@ class BybitConnector:
     def get_all_positions(self):
         positions: list[dict] = []
 
-        is_next_trade_entry = True
-        entry_price = 0
-        last_balance = 0
+        first_timestamp = 1709254759000
+        current_timestamp = current_milli_time()
+        seven_days_interval = 604800000
 
-        for position in self.session.get_transaction_log()['result']['list']:
-            if is_next_trade_entry is True:
-                is_next_trade_entry = False
-                entry_price = position['tradePrice']
-                last_balance = float(position['cashBalance'])
+        while first_timestamp < current_timestamp:
+            pnls = self.session.get_closed_pnl(category='linear', startTime=first_timestamp)['result']['list']
+            first_timestamp += seven_days_interval
 
-            else:
-                is_next_trade_entry = True
-
+            for pnl in pnls:
                 positions.append({
-                    "symbol": position['symbol'].split("USDT")[0],
-                    "side": "Buy" if position['side'] == "Sell" else "Sell",
-                    "quantity": position['qty'],
-                    "entry_price": entry_price,
-                    "exit_price": position['tradePrice'],
-                    "pnl": str(float(position['cashBalance']) - last_balance),
-                    "fee": position['fee'],
-                    "closing_timestamp": position['transactionTime']
+                    "symbol": pnl['symbol'].split("USDT")[0],
+                    "side": "Buy" if pnl['side'] == "Sell" else "Sell",
+                    "quantity": pnl['qty'],
+                    "entry_price": pnl['avgEntryPrice'],
+                    "exit_price": pnl['avgExitPrice'],
+                    "pnl": pnl['closedPnl'],
+                    "closing_timestamp": pnl['updatedTime'],
+                    "leverage": pnl['leverage']
                 })
 
-                    # Check why qty doesn't match what is displayed on Bybit dashboard, for now it's not guaranted exact
+        return sorted(positions, key=lambda x: x['closing_timestamp'], reverse=True)
 
-        return positions
+    def get_latest_price_for_symbol(self, symbol):
+        ticket_result = self.session.get_tickers(category="linear", symbol=symbol)
+        latest_close = float(ticket_result['result']['list'][0]['lastPrice'])
+        return latest_close
+
+    def get_current_position(self):
+        orders = self.session.get_positions(category='linear', symbol=f'{self.symbol}USDT')['result']['list']
+
+        if len(orders) == 1:
+            return {
+                "symbol": orders[0]['symbol'].split("USDT")[0],
+                "side": orders[0]['side'],
+                "unrealisedPnl": orders[0]['unrealisedPnl'],
+                "entry_price": orders[0]['avgPrice'],
+                "leverage": orders[0]['leverage'],
+                "current_price": self.get_latest_price_for_symbol(orders[0]['symbol']),
+                "timestamp": orders[0]['createdTime']
+            }
+        elif len(orders) > 1:
+            print("ERROR, more than 1 position opened!")
+        else:
+            return None

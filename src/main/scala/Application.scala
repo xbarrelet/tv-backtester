@@ -9,8 +9,6 @@ import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
-import cats.effect.IO
-import cats.effect.unsafe.implicits.global
 import doobie.*
 import doobie.implicits.*
 import org.slf4j.{Logger, LoggerFactory}
@@ -32,30 +30,29 @@ object Main {
 }
 
 private class Main(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
-  context.log.info("The backtester is starting")
-  context.log.info("")
-
+  context.log.info("The backtester is starting.\n")
+  
   private val logger: Logger = LoggerFactory.getLogger("Application")
   implicit val timeout: Timeout = 24.hours
   private val mainBacktesterRef: ActorRef[Message] = context.spawn(ChartBacktesterActor(), "main-backtester-actor")
 
-  
-  private val chartsToProcess: Seq[ChartToProcess] = sql"select chart_id, processing_type from charts_to_process"
-    .query[ChartToProcess]
-    .to[List]
-    .transact(BacktesterConfig.transactor)
-    .unsafeRunSync()
 
-  if chartsToProcess.isEmpty then
-    context.log.info("No chart to process, exiting")
-    exit()
+  //  private val chartsToProcess: Seq[ChartToProcess] = sql"select chart_id, processing_type from charts_to_process"
+  //    .query[ChartToProcess]
+  //    .to[List]
+  //    .transact(BacktesterConfig.transactor)
+  //    .unsafeRunSync()
 
-  for chart <- chartsToProcess do {
-    context.log.info(s"Processing chart ${chart.chart_id} with processing type ${chart.processing_type}")
-  }
-  context.log.info("")
-  
+  //  if chartsToProcess.isEmpty then
+  //    context.log.info("No chart to process, exiting")
+  //    exit()
+  //
+  //  for chart <- chartsToProcess do {
+  //    context.log.info(s"Processing chart ${chart.chart_id} with processing type ${chart.processing_type}")
+  //  }
+  //  context.log.info("")
 
+  val chartsToProcess = List(ChartToProcess("rMc9ho5f", "full"))
   Source(chartsToProcess)
     .mapAsync(1)(chartToProcess => {
       mainBacktesterRef ? (myRef => BacktestChartMessage(chartToProcess, myRef))
