@@ -1,5 +1,5 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "3.3.1"
+ThisBuild / scalaVersion := "3.5.0"
 
 val AkkaVersion = "2.9.4"
 

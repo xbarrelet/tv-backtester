@@ -18,6 +18,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.io.File
 import java.nio.file.{Files, Path, Paths}
+import java.text.SimpleDateFormat
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
@@ -30,6 +31,7 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
   implicit val timeout: Timeout = 6.hours
   private val logger: Logger = LoggerFactory.getLogger("ChartBacktesterActor")
   private val config: BacktesterConfig.type = BacktesterConfig
+  private val backtestingDateFormat = new SimpleDateFormat("yyyy-MM-dd")
 
   override def onMessage(message: Message): Behavior[Message] =
     message match
@@ -91,7 +93,10 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     context.log.info("Strategy name detected:" + config.strategyName)
 
     config.bestResult = getCurrentResult(page)
-
+    
+    config.backtestingPeriodDays = getBacktestingPeriodInDays(page)
+    context.log.info(s"Backtesting period of ${config.backtestingPeriodDays} days detected.")
+    
     page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).last().click()
     page.getByText("Core Boilerplate Version").waitFor()
 
@@ -121,6 +126,12 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
       distance += 10
 
     distance
+  }
+  
+  private def getBacktestingPeriodInDays(page: Page): Int = {
+    val backtestingStartDate = backtestingDateFormat.parse(page.locator(backtestingStartDateXPath).inputValue())
+    val backtestingEndDate = backtestingDateFormat.parse(page.locator(backtestingEndDateXPath).inputValue())
+    ((backtestingEndDate.getTime - backtestingStartDate.getTime) / (1000 * 60 * 60 * 24)).toInt
   }
 
   private def getCurrentResult(page: Page): BacktestingResultMessage = {
@@ -165,7 +176,7 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     page.locator(botifyVersionXPath).innerText().split("@").head.trim
 
   private def getNumberFromResultsFields(locator: Locator): Double =
-    val doubleText = locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "")
+    val doubleText = locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "").replace(",", "")
 
     if doubleText.contains("−") then
       doubleText.replace("−", "").toDouble * -1

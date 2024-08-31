@@ -52,7 +52,12 @@ private class Main(context: ActorContext[Message]) extends AbstractBehavior[Mess
   //  }
   //  context.log.info("")
 
-  val chartsToProcess = List(ChartToProcess("rMc9ho5f", "full"))
+  private val chartsToProcess = List(
+    ChartToProcess("CkQUSasu", "full"), //3M
+    ChartToProcess("QwzRIQ0k", "full"), //6M
+    ChartToProcess("P4oOkco1", "full"), //24M
+  )
+  
   Source(chartsToProcess)
     .mapAsync(1)(chartToProcess => {
       mainBacktesterRef ? (myRef => BacktestChartMessage(chartToProcess, myRef))

@@ -14,6 +14,7 @@ import com.microsoft.playwright.options.Cookie
 import com.microsoft.playwright.{Browser, BrowserContext, Playwright}
 import org.slf4j.{Logger, LoggerFactory}
 
+import scala.compiletime.uninitialized
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
@@ -27,7 +28,7 @@ private class StratOptimizerActor(context: ActorContext[Message]) extends Abstra
   private val logger: Logger = LoggerFactory.getLogger("StratOptimizerActor")
   private val config: BacktesterConfig.type = BacktesterConfig
 
-  private var mainActorRef: ActorRef[Message] = _
+  private var mainActorRef: ActorRef[Message] = uninitialized
   private var bestProfitabilityPercentageResult: Double = -1
   private var actorsCounter = 1
 

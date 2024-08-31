@@ -25,7 +25,7 @@ private class AffinementActor(context: ActorContext[Message]) extends AbstractMa
   val parametersLists: List[List[List[StrategyParameter]]] = List(
     addParametersForFixedMAsOptions(),
     addParametersForHurstExponent(),
-    addParametersForRangeFiltering(),
+//    addParametersForRangeFiltering(),
     addParametersForVWAPCrossover(),
 //    addParametersForSLTrailing()
   )

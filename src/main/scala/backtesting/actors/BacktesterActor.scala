@@ -56,7 +56,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
           case e: Exception =>
             val errorCounter = Random.nextInt(1000)
-            page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"error_$errorCounter.png")))
+            page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/error_$errorCounter.png")))
             context.log.error(s"Error with id $errorCounter when trying to backtest in the end actor, please check the screenshot to get an idea of what is happening:$e")
             context.self ! message
 
@@ -146,12 +146,12 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
   }
 
   private def getNumberFromResultsFields(locator: Locator): Double =
-    val innerText = locator.innerText()
+    val doubleText = locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "").replace(",", "")
 
-    if innerText.contains("−") then
-      0.0
+    if doubleText.contains("−") then
+      doubleText.replace("−", "").toDouble * -1
     else
-      locator.innerText().replace("%", "").replace(" ", "").replace("N/A", "0.0").replace(" ", "").toDouble
+      doubleText.toDouble
 
   private def enterParameters(parametersToTest: List[StrategyParameter], page: Page): Unit = {
     for parameterToTest <- parametersToTest do
@@ -313,7 +313,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     }
     catch {
       case e: Exception =>
-        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"start_page_${Random.nextInt()}.png")))
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/error_start_page_${Random.nextInt()}.png")))
         context.log.warn(s"Error when trying to open a new page, restarting Playwright and trying again:${e.getMessage}")
 
         resetEverything()

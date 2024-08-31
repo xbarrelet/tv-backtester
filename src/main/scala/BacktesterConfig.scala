@@ -11,6 +11,7 @@ object BacktesterConfig {
     var botifyVersion: String = ""
     var bestResult: BacktestingResultMessage = BacktestingResultMessage(0, 0, 0, 0, 0, List.empty)
     var distanceBetweenLabelAndField = 0
+    var backtestingPeriodDays = 0
 
     val transactor: Aux[IO, Unit] = Transactor.fromDriverManager[IO](
         driver = "org.postgresql.Driver",
