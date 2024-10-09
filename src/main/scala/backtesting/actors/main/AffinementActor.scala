@@ -19,6 +19,7 @@ object AffinementActor {
 
 private class AffinementActor(context: ActorContext[Message]) extends AbstractMainOptimizerActor(context) {
   val logger: Logger = LoggerFactory.getLogger("AffinementActor")
+  val stepName = "Affinement"
   evaluationParameter = "profitFactor"
 
   
@@ -27,7 +28,9 @@ private class AffinementActor(context: ActorContext[Message]) extends AbstractMa
     addParametersForHurstExponent(),
 //    addParametersForRangeFiltering(),
     addParametersForVWAPCrossover(),
-//    addParametersForSLTrailing()
+//    addParametersForSLTrailing(),
+    addParametersForMaxSL(),
+    addParametersForMinTp(),
   )
 
 
@@ -131,6 +134,29 @@ private class AffinementActor(context: ActorContext[Message]) extends AbstractMa
           ))
         })
       })
+    })
+
+    parametersList.toList
+
+  private def addParametersForMaxSL(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+
+    (10 to 50).map(percent => {
+      parametersList.addOne(List(
+        StrategyParameter(MAX_SL_PERCENT, (percent / 10.0).toString)
+      ))
+    })
+
+    parametersList.toList
+
+  
+  private def addParametersForMinTp(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+
+    (5 to 30).map(percent => {
+      parametersList.addOne(List(
+        StrategyParameter(MIN_TP_PERCENT, (percent / 10.0).toString)
+      ))
     })
 
     parametersList.toList

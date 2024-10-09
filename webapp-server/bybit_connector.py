@@ -9,15 +9,12 @@ def current_milli_time():
 
 
 class BybitConnector:
-    def __init__(self, api_key, api_secret, strategy_name, symbol):
+    def __init__(self, api_key, api_secret):
         self.session = HTTP(
             testnet=False,
             api_key=api_key,
             api_secret=api_secret,
         )
-        self.strategy_name = strategy_name
-        self.symbol = symbol if symbol is not None else "BTC"
-        print(f"connector created for strategy {strategy_name}")
 
     def get_available_funds(self):
         coin_balance = self.session.get_coin_balance(accountType='UNIFIED', coin='USDT')
@@ -26,25 +23,25 @@ class BybitConnector:
     def get_all_positions(self):
         positions: list[dict] = []
 
-        first_timestamp = 1709254759000
-        current_timestamp = current_milli_time()
-        seven_days_interval = 604800000
+        # first_timestamp = 1725185826000
+        # current_timestamp = current_milli_time()
+        # seven_days_interval = 604800000
+        #
+        # while first_timestamp < current_timestamp:
+        pnls = self.session.get_closed_pnl(category='linear')['result']['list']
+        # first_timestamp += seven_days_interval
 
-        while first_timestamp < current_timestamp:
-            pnls = self.session.get_closed_pnl(category='linear', startTime=first_timestamp)['result']['list']
-            first_timestamp += seven_days_interval
-
-            for pnl in pnls:
-                positions.append({
-                    "symbol": pnl['symbol'].split("USDT")[0],
-                    "side": "Buy" if pnl['side'] == "Sell" else "Sell",
-                    "quantity": pnl['qty'],
-                    "entry_price": pnl['avgEntryPrice'],
-                    "exit_price": pnl['avgExitPrice'],
-                    "pnl": pnl['closedPnl'],
-                    "closing_timestamp": pnl['updatedTime'],
-                    "leverage": pnl['leverage']
-                })
+        for pnl in pnls:
+            positions.append({
+                "symbol": pnl['symbol'].split("USDT")[0],
+                "side": "Buy" if pnl['side'] == "Sell" else "Sell",
+                "quantity": pnl['qty'],
+                "entry_price": pnl['avgEntryPrice'],
+                "exit_price": pnl['avgExitPrice'],
+                "pnl": pnl['closedPnl'],
+                "closing_timestamp": pnl['updatedTime'],
+                "leverage": pnl['leverage']
+            })
 
         return sorted(positions, key=lambda x: x['closing_timestamp'], reverse=True)
 
@@ -54,7 +51,7 @@ class BybitConnector:
         return latest_close
 
     def get_current_position(self):
-        orders = self.session.get_positions(category='linear', symbol=f'{self.symbol}USDT')['result']['list']
+        orders = self.session.get_positions(category='linear')['result']['list']
 
         if len(orders) == 1:
             return {

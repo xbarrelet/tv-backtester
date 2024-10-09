@@ -42,7 +42,7 @@ private class ParametersGroupBacktesterActor(context: ActorContext[Message]) ext
             backtestersSpawner ? (myRef => OptimizeParametersMessage(parametersToTest, myRef, chartId: String))
           })
           .map(_.asInstanceOf[BacktestingResultMessage])
-          .map(result => logResults(result))
+//          .map(result => logResults(result))
           .filter(_.closedTradesNumber > config.backtestingPeriodDays / 7)
           .filter(_.maxDrawdownPercentage < 20)
           .filter(_.netProfitsPercentage > 10)

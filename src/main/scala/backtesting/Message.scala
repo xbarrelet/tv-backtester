@@ -8,7 +8,7 @@ import akka.actor.typed.ActorRef
 
 sealed trait Message
 
-// QUERIES
+// QUERIES/COMMANDS
 final case class BacktestChartMessage(chartToProcess: ChartToProcess, replyTo: ActorRef[Message]) extends Message
 final case class ChartBacktestedMessage(chartId: String) extends Message
 final case class OptimizePartMessage(ref: ActorRef[Message], chartId: String) extends Message
@@ -16,6 +16,7 @@ final case class OptimizeParametersListsMessage(parameters: List[List[StrategyPa
 final case class OptimizeParametersMessage(parametersToTest: List[StrategyParameter], actorRef: ActorRef[Message], chartId: String) extends Message
 final case class SaveParametersMessage(parametersToSave: List[StrategyParameter], ref: ActorRef[Message]) extends Message
 final case class CloseBacktesterMessage() extends Message
+final case class ShutDownMessage() extends Message
 
 
 // RESPONSES

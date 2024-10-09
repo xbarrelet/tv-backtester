@@ -106,6 +106,10 @@ enum TVLocator(locatorType: TYPE, index: Int, label: String = "") {
   // VWAP
   case USE_VWAP_CROSSOVER extends TVLocator(TYPE.CHECKBOX, -35, "Use vWap / ema")
   case VWAP_LENGTH extends TVLocator(TYPE.INPUT, -25, "Vwap Length")
+
+  //MIN TP AND MAX SL
+  case MIN_TP_PERCENT extends TVLocator(TYPE.INPUT, 1, "Min Threshold TP %")
+  case MAX_SL_PERCENT extends TVLocator(TYPE.INPUT, 1, "Threshold Max % SL")
 }
 
 object TVLocator {
@@ -115,11 +119,12 @@ object TVLocator {
   val profitabilityPercentageValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[3]/div[2]/div[1]"
   val profitFactorValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[4]/div[2]/div[1]"
   val maxDrawdownPercentValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[5]/div[2]/div[2]"
-  val backtestingStartDateXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[1]/div[1]/div[3]/div/div[1]/div/div/div/div/span/span[1]/input"
-  val backtestingEndDateXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[1]/div[1]/div[3]/div/div[3]/div/div/div/div/span/span[1]/input"
 
   // MISC XPATHS
   val strategyNameXpath = "//html/body/div[2]/div[5]/div[1]/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/div[2]/div[1]/div[1]/div[1]/div"
   val botifyVersionXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[3]/div/span/span[1]/span/span"
   val deepBacktestingButtonXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[1]/div[1]/div[2]/div/span/input"
+  val backtestingStartDateXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[1]/div[1]/div[3]/div/div[1]/div/div/div/div/span/span[1]/input"
+  val backtestingEndDateXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[1]/div[1]/div[3]/div/div[3]/div/div/div/div/span/span[1]/input"
+  val strategyTesterXPath = "//html/body/div[2]/div[7]/div[1]/div/div[1]/div[1]/div[3]/button"
 }

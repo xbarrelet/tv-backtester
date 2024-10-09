@@ -20,6 +20,7 @@ object LeverageOptimizerActor {
 
 private class LeverageOptimizerActor(context: ActorContext[Message]) extends AbstractMainOptimizerActor(context) {
   val logger: Logger = LoggerFactory.getLogger("LeverageOptimizerActor")
+  val stepName = "Leverage"
   evaluationParameter = "netProfit"
   
 

@@ -52,12 +52,14 @@ private class Main(context: ActorContext[Message]) extends AbstractBehavior[Mess
   //  }
   //  context.log.info("")
 
+  // STARTS OPTIMIZED WITH/WITHOUT GOOD RESULTS: 6, 8,
+
+
   private val chartsToProcess = List(
-    ChartToProcess("CkQUSasu", "full"), //3M
-    ChartToProcess("QwzRIQ0k", "full"), //6M
-    ChartToProcess("P4oOkco1", "full"), //24M
+    ChartToProcess("ZWiw3sTX", "full"),
+    ChartToProcess("yYDVQxIn", "full"),
   )
-  
+
   Source(chartsToProcess)
     .mapAsync(1)(chartToProcess => {
       mainBacktesterRef ? (myRef => BacktestChartMessage(chartToProcess, myRef))
@@ -65,8 +67,8 @@ private class Main(context: ActorContext[Message]) extends AbstractBehavior[Mess
     .map(_.asInstanceOf[ChartBacktestedMessage])
     .map(_.chartId)
     .map(chartId => {
-      context.log.info(s"Chart $chartId has been backtested")
-      sql"delete from charts_to_process where chart_id = $chartId".update.run
+      logger.info(s"Chart $chartId has been backtested")
+//      sql"delete from charts_to_process where chart_id = $chartId".update.run
     })
     .runWith(Sink.last)
     .onComplete {

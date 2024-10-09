@@ -19,6 +19,7 @@ abstract class AbstractMainOptimizerActor(context: ActorContext[Message]) extend
   implicit val timeout: Timeout = 2.hours
   def logger: Logger
   def parametersLists: List[List[List[StrategyParameter]]]
+  def stepName: String
 
   private val optimizerActorRef: ActorRef[Message] = context.spawn(ParametersGroupBacktesterActor(), "parameter-optimizer-actor")
   val parametersFactory: StrategyParametersFactory.type = StrategyParametersFactory
@@ -28,6 +29,8 @@ abstract class AbstractMainOptimizerActor(context: ActorContext[Message]) extend
   override def onMessage(message: Message): Behavior[Message] =
     message match
       case OptimizePartMessage(mainActorRef: ActorRef[Message], chartId: String) =>
+        logger.info(s"Starting optimization of $stepName based on $evaluationParameter.")
+
         Source(parametersLists)
           .mapAsync(1)(parameters => {
             optimizerActorRef ? (myRef => OptimizeParametersListsMessage(parameters, myRef, chartId, evaluationParameter))
@@ -35,7 +38,7 @@ abstract class AbstractMainOptimizerActor(context: ActorContext[Message]) extend
           .runWith(Sink.last)
           .onComplete {
             case Success(result) =>
-              logger.info("Current optimization complete.")
+              logger.info(s"Current optimization of $stepName based on $evaluationParameter complete.")
               logger.info("")
               mainActorRef ! BacktestChartResponseMessage()
               optimizerActorRef ! CloseBacktesterMessage()
@@ -48,6 +51,10 @@ abstract class AbstractMainOptimizerActor(context: ActorContext[Message]) extend
               Behaviors.stopped
           }
 
+      case ShutDownMessage() =>
+        logger.info("Shutting down the optimizer.")
+        Behaviors.stopped
+        
       case _ =>
         context.log.warn("Received unknown message in AbstractMainOptimizerActor of type: " + message.getClass)
 

@@ -42,7 +42,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         chartId = chartIdFromMessage
         resetPage(chartId)
 
-        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
+//        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
 
         try {
           enterParameters(parametersToTest, page)
@@ -302,9 +302,11 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
       page = browserContext.newPage()
 
       page.navigate(s"https://www.tradingview.com/chart/$chartId/")
-      page.getByText("Deep Backtesting").waitFor()
-      //      page.getByText("Net Profit").waitFor()
 
+//      page.getByText("Strategy Tester").waitFor()
+//      page.locator(strategyTesterXPath).click()
+      page.getByText("Deep Backtesting").waitFor()
+      
       page.getByRole(AriaRole.SWITCH).click()
 
       page.locator(strategyNameXpath).hover()

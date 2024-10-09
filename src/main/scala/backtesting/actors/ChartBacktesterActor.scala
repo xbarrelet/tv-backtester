@@ -2,10 +2,10 @@ package ch.xavier
 package backtesting.actors
 
 import Application.{executionContext, system}
-import backtesting.actors.main.{AffinementActor, LeverageOptimizerActor, SLOptimizerActor, StratOptimizerActor, TPOptimizerActor}
+import akka.actor.{Kill, PoisonPill}
+import backtesting.actors.main.{AffinementActor, LeverageOptimizerActor, SLOptimizerActor, TPOptimizerActor}
 import backtesting.parameters.TVLocator.*
 import backtesting.*
-
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
@@ -44,13 +44,13 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
 
         val backtesters: List[ActorRef[Message]] = List(
 //            context.spawn(StratOptimizerActor(), "strategy-optimization-actor"),
-          context.spawn(SLOptimizerActor(), "sl-optimization-actor"),
-          context.spawn(TPOptimizerActor(), "tp-optimization-actor"),
-          context.spawn(AffinementActor(), "affinement-optimization-actor"),
-          context.spawn(LeverageOptimizerActor(), "leverage-optimization-actor")
+          context.spawn(SLOptimizerActor(), s"sl-optimization-actor-$chartId"),
+          context.spawn(TPOptimizerActor(), s"tp-optimization-actor-$chartId"),
+          context.spawn(AffinementActor(), s"affinement-optimization-actor-$chartId"),
+          context.spawn(LeverageOptimizerActor(), s"leverage-optimization-actor-$chartId")
         )
         
-        context.log.info(s"The optimization is starting with the steps: ${backtesters.map(_.path.name.split("-actor").head).mkString(", ")}")
+        context.log.info(s"The optimization is starting for chart $chartId with the steps: ${backtesters.map(_.path.name.split("-actor").head).mkString(", ")}")
         context.log.info("")
 
         Source(backtesters)
@@ -60,10 +60,12 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
           .runWith(Sink.last)
           .onComplete {
             case Success(result) =>
+              for backtester <- backtesters do backtester ! ShutDownMessage()
               logger.info(s"Optimization now complete for chart $chartId")
               replyTo ! ChartBacktestedMessage(chartId)
 
             case Failure(e) =>
+              for backtester <- backtesters do backtester ! ShutDownMessage()
               logger.error(s"Exception received during optimization of chart $chartId" + e)
               replyTo ! ChartBacktestedMessage(chartId)
           }
@@ -87,16 +89,19 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
     val page = browserContext.newPage()
 
     page.navigate(s"https://www.tradingview.com/chart/$chartId/")
+    
+//    page.getByText("Strategy Tester").waitFor()
+//    page.locator(strategyTesterXPath).click()
     page.getByText("Deep Backtesting").waitFor()
 
     config.strategyName = getStrategyNameUsedInChart(page)
     context.log.info("Strategy name detected:" + config.strategyName)
 
     config.bestResult = getCurrentResult(page)
-    
+
     config.backtestingPeriodDays = getBacktestingPeriodInDays(page)
     context.log.info(s"Backtesting period of ${config.backtestingPeriodDays} days detected.")
-    
+
     page.getByRole(AriaRole.BUTTON, new GetByRoleOptions().setName("Settings").setExact(true)).last().click()
     page.getByText("Core Boilerplate Version").waitFor()
 
@@ -127,7 +132,7 @@ class ChartBacktesterActor(context: ActorContext[Message]) extends AbstractBehav
 
     distance
   }
-  
+
   private def getBacktestingPeriodInDays(page: Page): Int = {
     val backtestingStartDate = backtestingDateFormat.parse(page.locator(backtestingStartDateXPath).inputValue())
     val backtestingEndDate = backtestingDateFormat.parse(page.locator(backtestingEndDateXPath).inputValue())
