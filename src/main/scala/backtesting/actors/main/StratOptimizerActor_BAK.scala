@@ -1,5 +1,5 @@
 //package ch.xavier
-package backtesting.actors.main
+//package backtesting.actors.main
 
 //package ch.xavier
 //package backtesting.actors.main

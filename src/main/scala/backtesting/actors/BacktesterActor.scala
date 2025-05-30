@@ -1,13 +1,11 @@
 package ch.xavier
 package backtesting.actors
 
-import backtesting.*
-import backtesting.parameters.TVLocator.*
-import backtesting.parameters.TVLocator.MA_TYPE.*
-import backtesting.parameters.{StrategyParameter, TYPE}
-
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
+import ch.xavier.backtesting.*
+import ch.xavier.backtesting.parameters.TVLocator.*
+import ch.xavier.backtesting.parameters.{StrategyParameter, TYPE}
 import com.microsoft.playwright.*
 import com.microsoft.playwright.Page.GetByRoleOptions
 import com.microsoft.playwright.options.{AriaRole, BoundingBox, Cookie}
@@ -42,7 +40,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
         chartId = chartIdFromMessage
         resetPage(chartId)
 
-//        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
+        //        context.log.info(s"Backtesting parameters:${parametersToTest.map(_.value)}")
 
         try {
           enterParameters(parametersToTest, page)
@@ -104,7 +102,7 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
   private def processTimeoutException(message: Message, actorRef: ActorRef[Message], timeoutException: TimeoutError, parametersToTest: List[StrategyParameter]): Unit = {
     val errorCounter = Random.nextInt(1000)
-    //    page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"timeout_$errorCounter.png")))
+    page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/timeout_$errorCounter.png")))
     context.log.warn(s"Timeout error id:$errorCounter when trying to backtest in the end actor with parameters:${parametersToTest.map(_.value)}, trying again")
 
     context.self ! message
@@ -171,6 +169,8 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
         else if locatorType.eq(TYPE.INPUT) then
           clickOnElement(page, parameterToTest)
+          page.keyboard().press("Control+A")
+          page.keyboard().press("Backspace")
           page.keyboard().insertText(parameterToTest.value)
           page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(s"screenshots_from_last_run/input_${parameterToTest.tvLocator.toString}.png")))
 
@@ -213,7 +213,10 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
     val labelBoundingBox: BoundingBox = labelLocator.boundingBox()
 
     if parameterToTest.tvLocator.getType.eq(TYPE.INPUT) then
-      page.mouse().dblclick(labelBoundingBox.x + config.distanceBetweenLabelAndField, labelBoundingBox.y + (labelBoundingBox.height / 2.0))
+      if parameterToTest.tvLocator.getIsCloseInput then
+        page.mouse().click(labelBoundingBox.x + 100, labelBoundingBox.y + (labelBoundingBox.height / 2.0))
+      else
+        page.mouse().dblclick(labelBoundingBox.x + config.distanceBetweenLabelAndField, labelBoundingBox.y + (labelBoundingBox.height / 2.0))
 
     else if parameterToTest.tvLocator.getType.eq(TYPE.OPTION) then
       page.mouse().click(labelBoundingBox.x + config.distanceBetweenLabelAndField, labelBoundingBox.y + (labelBoundingBox.height / 2.0))
@@ -303,10 +306,10 @@ class BacktesterActor(context: ActorContext[Message]) extends AbstractBehavior[M
 
       page.navigate(s"https://www.tradingview.com/chart/$chartId/")
 
-//      page.getByText("Strategy Tester").waitFor()
-//      page.locator(strategyTesterXPath).click()
+      //      page.getByText("Strategy Tester").waitFor()
+      //      page.locator(strategyTesterXPath).click()
       page.getByText("Deep Backtesting").waitFor()
-      
+
       page.getByRole(AriaRole.SWITCH).click()
 
       page.locator(strategyNameXpath).hover()

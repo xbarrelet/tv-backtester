@@ -5,11 +5,12 @@ enum TYPE {
   case INPUT, CHECKBOX, OPTION
 }
 
-enum TVLocator(locatorType: TYPE, index: Int, label: String = "") {
+enum TVLocator(locatorType: TYPE, index: Int, label: String = "", isCloseInput: Boolean = false) {
 
   def getType: TYPE = locatorType
   def getIndex: Int = index
   def getLabel: String = label
+  def getIsCloseInput: Boolean = isCloseInput
 
   case EMPTY extends TVLocator(null, 0, "")
 
@@ -36,6 +37,7 @@ enum TVLocator(locatorType: TYPE, index: Int, label: String = "") {
   case SL_LONG_FIXED_PERCENTS extends TVLocator(TYPE.INPUT, 6, "Stop Loss Long %")
   case SL_ATR_MULTIPLIER extends TVLocator(TYPE.INPUT, 20, "ATR Multiplier For Stoploss")
   case SL_ATR_SWING_LOOKBACK extends TVLocator(TYPE.INPUT, 21, "ATR Swing lookback")
+  case ATR_LENGTH extends TVLocator(TYPE.INPUT, 1, "ATR length")
 
   // HH
   case HIGHEST_HIGH_LOOKBACK extends TVLocator(TYPE.INPUT, 14, "Highest High lookback")
@@ -87,6 +89,12 @@ enum TVLocator(locatorType: TYPE, index: Int, label: String = "") {
   // USE MA
   case MA_TYPE extends TVLocator(TYPE.OPTION, 101, "Use Moving Averages?")
 
+  // VOLUME CONFIRMATION
+  case USE_VOLUME_CONFIRMATION extends TVLocator(TYPE.CHECKBOX, 1, "Volume confirm?")
+  case TDFI_LOOKBACK_LENGTH extends TVLocator(TYPE.INPUT, 1, "TDFI Lookback", true)
+  case MMA_LENGTH extends TVLocator(TYPE.INPUT, 1, "MMA Length v2")
+  case N_LENGTH extends TVLocator(TYPE.INPUT, 1, "N Length v2")
+
   // RANGE FILTER
   case USE_RANGE_FILTER extends TVLocator(TYPE.CHECKBOX, -52, "Use The Range Filter?")
   case RANGE_FILTER_PERIOD extends TVLocator(TYPE.INPUT, -49, "RF Period")
@@ -121,7 +129,8 @@ object TVLocator {
   val maxDrawdownPercentValueXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[3]/div/div[1]/div[5]/div[2]/div[2]"
 
   // MISC XPATHS
-  val strategyNameXpath = "//html/body/div[2]/div[5]/div[1]/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/div[2]/div[1]/div[1]/div[1]/div"
+//  val strategyNameXpath = "//html/body/div[2]/div[5]/div[1]/div[1]/div/div[2]/div[1]/div[2]/div/div[2]/div[2]/div/div[2]/div[1]/div[1]/div[1]/div"
+  val strategyNameXpath = "//html/body/div[2]/div[5]/div[1]/div[1]/div/div[2]/div[1]/div[2]/div/div[1]/div[2]/div/div[2]/div[1]/div[1]/div[1]/div"
   val botifyVersionXPath = "//html/body/div[6]/div/div/div[1]/div/div[3]/div/div[3]/div/span/span[1]/span/span"
   val deepBacktestingButtonXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[1]/div[1]/div[2]/div/span/input"
   val backtestingStartDateXPath = "//html/body/div[2]/div[7]/div[2]/div[4]/div/div[1]/div[1]/div[3]/div/div[1]/div/div/div/div/span/span[1]/input"

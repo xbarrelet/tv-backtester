@@ -21,7 +21,7 @@ object TPOptimizerActor {
 private class TPOptimizerActor(context: ActorContext[Message]) extends AbstractMainOptimizerActor(context) {
   val logger: Logger = LoggerFactory.getLogger("TPOptimizerActor")
   val stepName = "Take Profit"
-  //  evaluationParameter = "profitFactor"
+    evaluationParameter = "profitFactor"
 
 
   var parametersListsBuffer: ListBuffer[List[StrategyParameter]] = ListBuffer()

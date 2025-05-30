@@ -25,13 +25,64 @@ private class AffinementActor(context: ActorContext[Message]) extends AbstractMa
   
   val parametersLists: List[List[List[StrategyParameter]]] = List(
     addParametersForFixedMAsOptions(),
+
+    addParametersForVolumeConfirmationTFDILookback(),
+    addParametersForVolumeConfirmationMMALength(),
+    addParametersForVolumeConfirmationNLength(),
+
     addParametersForHurstExponent(),
-//    addParametersForRangeFiltering(),
+    addParametersForRangeFiltering(),
     addParametersForVWAPCrossover(),
-//    addParametersForSLTrailing(),
+    //    addParametersForSLTrailing(),
     addParametersForMaxSL(),
     addParametersForMinTp(),
   )
+
+
+  private def addParametersForVolumeConfirmationTFDILookback(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+
+    parametersList.addOne(List(StrategyParameter(USE_VOLUME_CONFIRMATION, "false")))
+
+    (1 to 25).map(length => {
+      parametersList.addOne(List(
+        StrategyParameter(USE_VOLUME_CONFIRMATION, "true"),
+        StrategyParameter(TDFI_LOOKBACK_LENGTH, length.toString),
+      ))
+    })
+
+    parametersList.toList
+
+
+  private def addParametersForVolumeConfirmationMMALength(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+
+    parametersList.addOne(List(StrategyParameter(USE_VOLUME_CONFIRMATION, "false")))
+
+    (1 to 100).map(length => {
+      parametersList.addOne(List(
+        StrategyParameter(USE_VOLUME_CONFIRMATION, "true"),
+        StrategyParameter(MMA_LENGTH, length.toString),
+      ))
+    })
+
+    parametersList.toList
+
+
+  private def addParametersForVolumeConfirmationNLength(): List[List[StrategyParameter]] =
+    val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
+
+    parametersList.addOne(List(StrategyParameter(USE_VOLUME_CONFIRMATION, "false")))
+
+    (1 to 100).map(length => {
+      parametersList.addOne(List(
+        StrategyParameter(USE_VOLUME_CONFIRMATION, "true"),
+        StrategyParameter(N_LENGTH, length.toString),
+      ))
+    })
+
+    parametersList.toList
+
 
 
   private def addParametersForFixedMAsOptions(): List[List[StrategyParameter]] =
@@ -81,7 +132,7 @@ private class AffinementActor(context: ActorContext[Message]) extends AbstractMa
     parametersList.addOne(List(StrategyParameter(USE_RANGE_FILTER, "false")))
 
     (5 to 75 by 5).map(multiplier => {
-      (5 to 150 by 5).map(period => {
+      (5 to 125 by 5).map(period => {
         parametersList.addOne(List(
           StrategyParameter(USE_RANGE_FILTER, "true"),
           StrategyParameter(RANGE_FILTER_PERIOD, period.toString),
@@ -141,7 +192,7 @@ private class AffinementActor(context: ActorContext[Message]) extends AbstractMa
   private def addParametersForMaxSL(): List[List[StrategyParameter]] =
     val parametersList: ListBuffer[List[StrategyParameter]] = ListBuffer()
 
-    (10 to 50).map(percent => {
+    (10 to 15).map(percent => {
       parametersList.addOne(List(
         StrategyParameter(MAX_SL_PERCENT, (percent / 10.0).toString)
       ))

@@ -42,7 +42,7 @@ private class ParametersGroupBacktesterActor(context: ActorContext[Message]) ext
             backtestersSpawner ? (myRef => OptimizeParametersMessage(parametersToTest, myRef, chartId: String))
           })
           .map(_.asInstanceOf[BacktestingResultMessage])
-//          .map(result => logResults(result))
+          .map(result => logResults(result))
           .filter(_.closedTradesNumber > config.backtestingPeriodDays / 7)
           .filter(_.maxDrawdownPercentage < 20)
           .filter(_.netProfitsPercentage > 10)
@@ -53,6 +53,7 @@ private class ParametersGroupBacktesterActor(context: ActorContext[Message]) ext
             case Success(result) =>
               if results.isEmpty then
                 logger.info("No positive result received during the last optimization.")
+                logger.info("")
                 mainActorRef ! BacktestingResultMessage(0.0, 0, 0.0, 0.0, 0.0, List.empty)
 
               else
@@ -108,12 +109,16 @@ private class ParametersGroupBacktesterActor(context: ActorContext[Message]) ext
         backtestersSpawner ! CloseBacktesterMessage()
         Behaviors.stopped
 
+      case _ =>
+        context.log.error("Received unknown message in BacktesterActor")
+        Behaviors.stopped
+
 
   private def logBestResults(sortedResults: List[BacktestingResultMessage]): Unit = {
     logger.info("")
-    logger.info(s"Best ${Math.min(sortedResults.size, 50)} on ${sortedResults.size} results sorted by % of profitable trades:")
+    logger.info(s"Best ${Math.max(sortedResults.size, 20)} on ${sortedResults.size} results sorted by % of profitable trades:")
 
-    for result <- sortedResults.take(50) do
+    for result <- sortedResults.take(20) do
       logger.info(s"Profit factor:${result.profitFactor} - net profit:${result.netProfitsPercentage}% - closed trades:${result.closedTradesNumber} - profitability:${result.profitabilityPercentage} - max drawdown:${result.maxDrawdownPercentage} - parameters:${result.parameters.map(_.value)}")
     logger.info("")
   }

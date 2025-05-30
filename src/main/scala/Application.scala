@@ -1,16 +1,13 @@
 package ch.xavier
 
-import Application.{executionContext, system}
-import backtesting.actors.ChartBacktesterActor
-import backtesting.{BacktestChartMessage, ChartBacktestedMessage, ChartToProcess, Message}
-
 import akka.actor.typed.scaladsl.AskPattern.{Askable, schedulerFromActorSystem}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
-import doobie.*
-import doobie.implicits.*
+import ch.xavier.Application.{executionContext, system}
+import ch.xavier.backtesting.actors.ChartBacktesterActor
+import ch.xavier.backtesting.{BacktestChartMessage, ChartBacktestedMessage, ChartToProcess, Message}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.ExecutionContextExecutor
@@ -31,7 +28,7 @@ object Main {
 
 private class Main(context: ActorContext[Message]) extends AbstractBehavior[Message](context) {
   context.log.info("The backtester is starting.\n")
-  
+
   private val logger: Logger = LoggerFactory.getLogger("Application")
   implicit val timeout: Timeout = 24.hours
   private val mainBacktesterRef: ActorRef[Message] = context.spawn(ChartBacktesterActor(), "main-backtester-actor")
@@ -52,12 +49,8 @@ private class Main(context: ActorContext[Message]) extends AbstractBehavior[Mess
   //  }
   //  context.log.info("")
 
-  // STARTS OPTIMIZED WITH/WITHOUT GOOD RESULTS: 6, 8,
-
-
   private val chartsToProcess = List(
-    ChartToProcess("ZWiw3sTX", "full"),
-    ChartToProcess("yYDVQxIn", "full"),
+    ChartToProcess("BLkhEBIl", "full"),
   )
 
   Source(chartsToProcess)
@@ -68,7 +61,7 @@ private class Main(context: ActorContext[Message]) extends AbstractBehavior[Mess
     .map(_.chartId)
     .map(chartId => {
       logger.info(s"Chart $chartId has been backtested")
-//      sql"delete from charts_to_process where chart_id = $chartId".update.run
+      //      sql"delete from charts_to_process where chart_id = $chartId".update.run
     })
     .runWith(Sink.last)
     .onComplete {
